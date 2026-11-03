@@ -1,0 +1,20 @@
+#!/bin/sh
+# Troca o perfil de energia quando o GameMode inicia/termina.
+# Se o perfil "performance" já estava ativo antes (ativado manualmente),
+# ele é mantido ao fechar o jogo, até ser desativado manualmente.
+STATE="${XDG_RUNTIME_DIR:-/tmp}/gamemode-profile.prev"
+
+case "$1" in
+start)
+	powerprofilesctl get > "$STATE"
+	powerprofilesctl set performance
+	;;
+end)
+	[ -f "$STATE" ] || exit 0
+	prev=$(cat "$STATE")
+	rm -f "$STATE"
+	# Só restaura se o perfil ainda for o que o GameMode colocou
+	# (se o usuário trocou durante o jogo, respeita a escolha dele).
+	[ "$(powerprofilesctl get)" = performance ] && powerprofilesctl set "$prev"
+	;;
+esac

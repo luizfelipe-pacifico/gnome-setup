@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Lançador do RPCS3:
+#  - força X11 (xcb) para o GNOME associar a janela ao rpcs3.desktop (ícone correto;
+#    no Wayland nativo o app_id vira "AppRun" e aparece o ícone genérico)
+#  - usa gamemode se disponível
+#  - ao fechar, se houve erro fatal/crash, guarda o log em ~/RPCS3/crash-logs
+
+export QT_QPA_PLATFORM=xcb
+
+LOG="$HOME/.cache/rpcs3/RPCS3.log"
+# pasta do sistema (criada pelo /etc/tmpfiles.d/00-crash-retention.conf); se não existir, usa a do usuário
+CRASH_DIR=/var/log/crash-reports/rpcs3
+[ -w "$CRASH_DIR" ] || CRASH_DIR="$HOME/RPCS3/crash-logs"
+KEEP=50
+MAX_DAYS=30
+
+# apaga logs de crash com mais de $MAX_DAYS dias (roda a cada abertura do RPCS3)
+[ -d "$CRASH_DIR" ] && find "$CRASH_DIR" -type f \( -name '*.log' -o -name '*.resumo.txt' \) -mtime +$((MAX_DAYS - 1)) -delete
+
+if command -v gamemoderun >/dev/null 2>&1; then
+    gamemoderun /usr/bin/rpcs3 "$@"
+else
+    /usr/bin/rpcs3 "$@"
+fi
+code=$?
+
+[ -f "$LOG" ] || exit $code
+
+fatal=$(grep -aE '^·F ' "$LOG")
+# 0 = saída normal; 128+ = morto por sinal (segfault, abort...)
+if [ -z "$fatal" ] && [ $code -eq 0 ]; then
+    exit $code
+fi
+
+mkdir -p "$CRASH_DIR"
+title=$(grep -aoP 'SYS: Title: \K.*' "$LOG" | tail -1)
+serial=$(grep -aoP "title_id='\K[^']*" "$LOG" | tail -1)
+name=$(printf '%s_%s' "${serial:-sem-jogo}" "${title:-desconhecido}" | tr -c 'A-Za-z0-9._-' '_' | cut -c1-60)
+base="$CRASH_DIR/$(date +%Y-%m-%d_%H-%M-%S)_$name"
+
+cp "$LOG" "$base.log"
+{
+    echo "Jogo:      ${title:-?} [${serial:-?}]"
+    echo "Data:      $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Exit code: $code"
+    echo "RPCS3:     $(grep -aom1 'RPCS3 v[^ ]*' "$LOG")"
+    echo
+    echo "== Erros fatais =="
+    echo "${fatal:-(nenhum no log; processo terminou com código $code)}"
+    echo
+    echo "== Últimos erros (·E) =="
+    grep -aE '^·E ' "$LOG" | tail -30
+    if [ $code -ge 128 ] && command -v coredumpctl >/dev/null 2>&1; then
+        echo
+        echo "== coredump =="
+        coredumpctl info -1 --no-pager 2>/dev/null | head -60
+    fi
+} > "$base.resumo.txt"
+
+# mantém só os $KEEP crashes mais recentes
+ls -1t "$CRASH_DIR"/*.resumo.txt 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r f; do
+    rm -f "$f" "${f%.resumo.txt}.log"
+done
+
+command -v notify-send >/dev/null 2>&1 && \
+    notify-send -i rpcs3 "RPCS3 crashou: ${title:-?}" "Log salvo em $CRASH_DIR"
+
+exit $code

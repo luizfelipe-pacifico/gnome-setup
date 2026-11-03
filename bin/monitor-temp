@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""Janela pequena para acompanhar temperatura, ventoinha, CPU, RAM e bateria."""
+import glob
+import os
+import subprocess
+from collections import deque
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
+
+INTERVALO_MS = 1500
+HISTORICO = 60
+FAN_MAX_RPM = 7500
+PERFIS = [("power-saver", "Economia"), ("balanced", "Equilibrado"), ("performance", "Desempenho")]
+
+CSS = """
+.valor { font-size: 22px; font-weight: 700; font-feature-settings: "tnum"; }
+.rotulo { font-size: 11px; opacity: .65; }
+.cartao { padding: 10px 12px; }
+.frio  { color: #2ec27e; }
+.morno { color: #e5a50a; }
+.quente{ color: #e01b24; }
+"""
+
+
+def ler(caminho, padrao=None):
+    try:
+        with open(caminho) as f:
+            return f.read().strip()
+    except OSError:
+        return padrao
+
+
+def hwmon(nome):
+    for p in glob.glob("/sys/class/hwmon/hwmon*/name"):
+        if ler(p) == nome:
+            return os.path.dirname(p)
+    return None
+
+
+class Sensores:
+    def __init__(self):
+        self.coretemp = hwmon("coretemp")
+        self.asus = hwmon("asus")
+        self.acpi_fan = hwmon("acpi_fan")
+        self.nvme = hwmon("nvme")
+        self.cpu_ant = None
+
+    def _temp(self, base, rotulo=None):
+        if not base:
+            return None
+        for lab in glob.glob(f"{base}/temp*_label"):
+            if rotulo is None or ler(lab) == rotulo:
+                v = ler(lab.replace("_label", "_input"))
+                return int(v) / 1000 if v else None
+        v = ler(f"{base}/temp1_input")
+        return int(v) / 1000 if v else None
+
+    def cpu_temp(self):
+        return self._temp(self.coretemp, "Package id 0")
+
+    def nvme_temp(self):
+        return self._temp(self.nvme, "Composite")
+
+    def fan(self):
+        for base in (self.asus, self.acpi_fan):
+            v = ler(f"{base}/fan1_input") if base else None
+            if v:
+                return int(v)
+        return None
+
+    def cpu_uso(self):
+        campos = list(map(int, ler("/proc/stat").splitlines()[0].split()[1:]))
+        ocioso, total = campos[3] + campos[4], sum(campos)
+        ant, self.cpu_ant = self.cpu_ant, (ocioso, total)
+        if not ant or total == ant[1]:
+            return 0.0
+        return 100 * (1 - (ocioso - ant[0]) / (total - ant[1]))
+
+    def cpu_freq(self):
+        fs = [int(ler(p, "0")) for p in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq")]
+        return max(fs) / 1e6 if fs else None
+
+    def ram(self):
+        info = {}
+        for linha in ler("/proc/meminfo").splitlines():
+            k, v = linha.split(":")
+            info[k] = int(v.split()[0])
+        total = info["MemTotal"] / 1048576
+        usado = total - info["MemAvailable"] / 1048576
+        return usado, total
+
+    def bateria(self):
+        b = "/sys/class/power_supply/BAT1"
+        cap = ler(f"{b}/capacity")
+        if cap is None:
+            return None
+        status = {"Charging": "carregando", "Discharging": "na bateria", "Full": "cheia",
+                  "Not charging": "na tomada"}.get(ler(f"{b}/status"), "")
+        watts = None
+        cur, volt = ler(f"{b}/current_now"), ler(f"{b}/voltage_now")
+        if cur and volt:
+            watts = int(cur) * int(volt) / 1e12
+        return int(cap), status, watts
+
+
+def perfil_atual():
+    # Leitura rápida pelo sysfs; powerprofilesctl só como alternativa
+    sysfs = {"low-power": "power-saver", "quiet": "power-saver", "balanced": "balanced",
+             "performance": "performance"}.get(ler("/sys/firmware/acpi/platform_profile"))
+    if sysfs:
+        return sysfs
+    try:
+        return subprocess.run(["powerprofilesctl", "get"], capture_output=True, text=True,
+                              timeout=2).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ler("/sys/firmware/acpi/platform_profile", "")
+
+
+def classe_temp(t):
+    return "frio" if t < 60 else "morno" if t < 80 else "quente"
+
+
+class Grafico(Gtk.DrawingArea):
+    """Mini gráfico com o histórico da temperatura da CPU e da ventoinha."""
+
+    def __init__(self):
+        super().__init__()
+        self.temps = deque(maxlen=HISTORICO)
+        self.fans = deque(maxlen=HISTORICO)
+        self.set_content_height(70)
+        self.set_draw_func(self._desenhar)
+
+    def adicionar(self, temp, fan):
+        self.temps.append(temp or 0)
+        self.fans.append(fan or 0)
+        self.queue_draw()
+
+    def _linha(self, cr, w, h, dados, maximo, rgb):
+        if len(dados) < 2:
+            return
+        passo = w / (HISTORICO - 1)
+        x0 = w - passo * (len(dados) - 1)
+        cr.set_source_rgba(*rgb, 1)
+        cr.set_line_width(2)
+        for i, v in enumerate(dados):
+            x, y = x0 + i * passo, h - 4 - (h - 8) * min(v / maximo, 1)
+            cr.line_to(x, y) if i else cr.move_to(x, y)
+        cr.stroke_preserve()
+        cr.line_to(w, h)
+        cr.line_to(x0, h)
+        cr.set_source_rgba(*rgb, 0.15)
+        cr.fill()
+
+    def _desenhar(self, _area, cr, w, h):
+        self._linha(cr, w, h, self.fans, FAN_MAX_RPM, (0.21, 0.52, 0.89))
+        self._linha(cr, w, h, self.temps, 105, (0.88, 0.36, 0.20))
+
+
+class Cartao(Gtk.Box):
+    def __init__(self, rotulo, maximo=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.add_css_class("card")
+        self.add_css_class("cartao")
+        self.set_hexpand(True)
+        lab = Gtk.Label(label=rotulo, xalign=0)
+        lab.add_css_class("rotulo")
+        self.valor = Gtk.Label(label="—", xalign=0)
+        self.valor.add_css_class("valor")
+        self.extra = Gtk.Label(label="", xalign=0)
+        self.extra.add_css_class("rotulo")
+        self.append(lab)
+        self.append(self.valor)
+        self.barra = None
+        if maximo:
+            self.barra = Gtk.LevelBar(min_value=0, max_value=maximo)
+            self.append(self.barra)
+        self.append(self.extra)
+
+    def definir(self, texto, nivel=None, extra="", classe=None):
+        self.valor.set_label(texto)
+        for c in ("frio", "morno", "quente"):
+            self.valor.remove_css_class(c)
+        if classe:
+            self.valor.add_css_class(classe)
+        if self.barra is not None and nivel is not None:
+            self.barra.set_value(min(nivel, self.barra.get_max_value()))
+        self.extra.set_label(extra)
+
+
+class Janela(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Monitor", resizable=False)
+        self.set_default_size(380, -1)
+        self.s = Sensores()
+        self.temp_max = 0
+
+        caixa = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10,
+                        margin_top=6, margin_bottom=16, margin_start=16, margin_end=16)
+
+        modelo = ler("/sys/class/dmi/id/product_name", "").split("_")[0]
+        titulo = Gtk.Label(label=modelo)
+        titulo.add_css_class("title-3")
+        cpu = next((l.split(":", 1)[1].strip() for l in ler("/proc/cpuinfo", "").splitlines()
+                    if l.startswith("model name")), "")
+        sub = Gtk.Label(label=cpu.replace("(R)", "").replace("(TM)", ""))
+        sub.add_css_class("dim-label")
+        caixa.append(titulo)
+        caixa.append(sub)
+
+        grade = Gtk.Grid(column_spacing=10, row_spacing=10, column_homogeneous=True)
+        self.c_temp = Cartao("TEMPERATURA CPU", 105)
+        self.c_fan = Cartao("VENTOINHA", FAN_MAX_RPM)
+        self.c_cpu = Cartao("USO DA CPU", 100)
+        self.c_ram = Cartao("MEMÓRIA RAM", 100)
+        self.c_ssd = Cartao("SSD (NVMe)")
+        self.c_bat = Cartao("BATERIA")
+        for i, c in enumerate((self.c_temp, self.c_fan, self.c_cpu, self.c_ram, self.c_ssd, self.c_bat)):
+            grade.attach(c, i % 2, i // 2, 1, 1)
+        caixa.append(grade)
+
+        self.grafico = Grafico()
+        legenda = Gtk.Label(use_markup=True, xalign=0, label=(
+            "<span size='small'><span color='#e05c33'>━</span> temperatura   "
+            "<span color='#3584e4'>━</span> ventoinha   (últimos 90 s)</span>"))
+        legenda.add_css_class("dim-label")
+        caixa.append(self.grafico)
+        caixa.append(legenda)
+
+        self.perfil = Gtk.DropDown.new_from_strings([n for _, n in PERFIS])
+        self.perfil.set_valign(Gtk.Align.CENTER)
+        self._sincronizar_perfil()
+        self.perfil.connect("notify::selected", self._trocar_perfil)
+        linha = Gtk.Box(spacing=10)
+        lab = Gtk.Label(label="Modo de energia", xalign=0, hexpand=True)
+        linha.append(lab)
+        linha.append(self.perfil)
+        caixa.append(linha)
+
+        corpo = Adw.ToolbarView()
+        corpo.add_top_bar(Adw.HeaderBar(show_title=False))
+        corpo.set_content(caixa)
+        self.set_content(corpo)
+
+        self.s.cpu_uso()
+        self._atualizar()
+        GLib.timeout_add(INTERVALO_MS, self._atualizar)
+
+    def _sincronizar_perfil(self):
+        atual = perfil_atual()
+        self._ignorar = True
+        for i, (chave, _) in enumerate(PERFIS):
+            if chave == atual and self.perfil.get_selected() != i:
+                self.perfil.set_selected(i)
+        self._ignorar = False
+
+    def _trocar_perfil(self, dd, _p):
+        if self._ignorar:
+            return
+        chave = PERFIS[dd.get_selected()][0]
+        subprocess.Popen(["powerprofilesctl", "set", chave])
+
+    def _atualizar(self):
+        t = self.s.cpu_temp()
+        if t is not None:
+            self.temp_max = max(self.temp_max, t)
+            self.c_temp.definir(f"{t:.0f} °C", t, f"máx. na sessão: {self.temp_max:.0f} °C",
+                                classe_temp(t))
+
+        rpm = self.s.fan()
+        if rpm is not None:
+            pct = 100 * rpm / FAN_MAX_RPM
+            estado = "parada" if rpm == 0 else "baixa" if pct < 40 else "média" if pct < 75 else "alta"
+            self.c_fan.definir(f"{rpm} RPM", rpm, f"rotação {estado}")
+
+        uso = self.s.cpu_uso()
+        f = self.s.cpu_freq()
+        self.c_cpu.definir(f"{uso:.0f} %", uso, f"até {f:.1f} GHz" if f else "")
+
+        usado, total = self.s.ram()
+        self.c_ram.definir(f"{usado:.1f} GB", 100 * usado / total, f"de {total:.0f} GB")
+
+        ssd = self.s.nvme_temp()
+        if ssd is not None:
+            self.c_ssd.definir(f"{ssd:.0f} °C", classe=classe_temp(ssd + 10))
+
+        bat = self.s.bateria()
+        if bat:
+            cap, status, watts = bat
+            extra = status + (f" · {watts:.1f} W" if watts and watts > 0.1 else "")
+            self.c_bat.definir(f"{cap} %", extra=extra)
+
+        self.grafico.adicionar(t, rpm)
+        self._sincronizar_perfil()
+        return GLib.SOURCE_CONTINUE
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="local.luizfelipe.MonitorTemp")
+
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        css = Gtk.CssProvider()
+        css.load_from_string(CSS)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    def do_activate(self):
+        (self.get_active_window() or Janela(self)).present()
+
+
+if __name__ == "__main__":
+    App().run(None)

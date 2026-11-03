@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Monitor de Temperatura
+Comment=Temperatura, ventoinha, CPU, RAM e bateria
+Exec=/home/luizfelipe/.local/bin/monitor-temp
+Icon=utilities-system-monitor
+Categories=System;Monitor;
+Keywords=temperatura;ventoinha;fan;cpu;sensores;
+StartupWMClass=local.luizfelipe.MonitorTemp

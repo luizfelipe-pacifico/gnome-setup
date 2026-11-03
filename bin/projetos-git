@@ -1,0 +1,485 @@
+#!/usr/bin/env python3
+"""Gerenciador visual simples de projetos Git locais."""
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
+
+CONFIG = Path.home() / ".config/projetos-git/projetos.json"
+MAX_DIFF = 200_000
+
+ESTADOS = {
+    "??": ("novo", "success"),
+    "A": ("novo", "success"),
+    "M": ("modificado", "warning"),
+    "D": ("apagado", "error"),
+    "R": ("renomeado", "accent"),
+}
+
+CSS = """
+.diff { font-family: monospace; font-size: 10pt; }
+.etiqueta { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.etiqueta.success { background: alpha(@success_color, .18); color: @success_color; }
+.etiqueta.warning { background: alpha(@warning_color, .18); color: @warning_color; }
+.etiqueta.error   { background: alpha(@error_color, .18); color: @error_color; }
+.etiqueta.accent  { background: alpha(@accent_color, .18); color: @accent_color; }
+"""
+
+
+# ---------- Git ----------
+
+def git(repo, *args):
+    r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True,
+                       errors="replace")
+    return r.returncode, r.stdout, r.stderr.strip()
+
+
+def eh_repo(pasta):
+    return git(pasta, "rev-parse", "--is-inside-work-tree")[0] == 0
+
+
+def tem_head(repo):
+    return git(repo, "rev-parse", "--verify", "-q", "HEAD")[0] == 0
+
+
+def alteracoes(repo):
+    """Lista de (xy, caminho) a partir do git status."""
+    _, out, _ = git(repo, "status", "--porcelain=v1", "-z", "-uall")
+    itens, partes, i = [], out.split("\0"), 0
+    while i < len(partes):
+        e = partes[i]
+        i += 1
+        if not e:
+            continue
+        xy, caminho = e[:2], e[3:]
+        if xy[0] in "RC":
+            i += 1  # caminho antigo do renomeio
+        itens.append((xy, caminho))
+    return itens
+
+
+def estado(xy):
+    if xy == "??":
+        return ESTADOS["??"]
+    for c in "DRAM":
+        if c in xy:
+            return ESTADOS[c]
+    return ESTADOS["M"]
+
+
+def historico(repo, limite=200):
+    if not tem_head(repo):
+        return []
+    _, out, _ = git(repo, "log", f"-n{limite}", "--pretty=format:%h%x1f%s%x1f%ar%x1f%an")
+    return [linha.split("\x1f") for linha in out.splitlines() if linha]
+
+
+def diff_arquivo(repo, xy, caminho):
+    if xy == "??" or (xy[0] == "A" and not tem_head(repo)):
+        try:
+            texto = (Path(repo) / caminho).read_text(errors="replace")[:MAX_DIFF]
+        except (OSError, UnicodeDecodeError):
+            return "(arquivo binário ou ilegível)"
+        return "".join(f"+{l}\n" for l in texto.splitlines())
+    alvo = ["HEAD"] if tem_head(repo) else ["--cached"]
+    return git(repo, "diff", *alvo, "--", caminho)[1][:MAX_DIFF] or "(sem diferenças de texto)"
+
+
+# ---------- Projetos salvos ----------
+
+def carregar_projetos():
+    try:
+        return [p for p in json.loads(CONFIG.read_text()) if os.path.isdir(p)]
+    except (OSError, ValueError):
+        return []
+
+
+def salvar_projetos(lista):
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text(json.dumps(lista, indent=2))
+
+
+# ---------- Interface ----------
+
+def visor_diff():
+    view = Gtk.TextView(editable=False, cursor_visible=False, monospace=True,
+                        wrap_mode=Gtk.WrapMode.NONE, top_margin=8, left_margin=8)
+    view.add_css_class("diff")
+    buf = view.get_buffer()
+    buf.create_tag("add", foreground="#26a269")
+    buf.create_tag("del", foreground="#e01b24")
+    buf.create_tag("hunk", foreground="#3584e4", weight=Pango.Weight.BOLD)
+    buf.create_tag("meta", foreground="#9a9996")
+    rolagem = Gtk.ScrolledWindow(child=view, vexpand=True)
+    rolagem.add_css_class("card")
+    return rolagem, buf
+
+
+def mostrar_diff(buf, texto):
+    buf.set_text("")
+    fim = buf.get_end_iter()
+    for linha in texto.splitlines():
+        if linha.startswith(("+++", "---", "diff ", "index ", "commit ", "Author:", "Date:")):
+            tag = "meta"
+        elif linha.startswith("+"):
+            tag = "add"
+        elif linha.startswith("-"):
+            tag = "del"
+        elif linha.startswith("@@"):
+            tag = "hunk"
+        else:
+            tag = None
+        if tag:
+            buf.insert_with_tags_by_name(fim, linha + "\n", tag)
+        else:
+            buf.insert(fim, linha + "\n")
+
+
+def etiqueta(texto, cor):
+    lab = Gtk.Label(label=texto.upper(), valign=Gtk.Align.CENTER)
+    lab.add_css_class("etiqueta")
+    lab.add_css_class(cor)
+    return lab
+
+
+class Janela(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Projetos Git")
+        self.set_default_size(1000, 680)
+        self.projetos = carregar_projetos()
+        self.atual = None
+
+        self.toasts = Adw.ToastOverlay()
+        self.split = Adw.NavigationSplitView(min_sidebar_width=240)
+        self.split.set_sidebar(self._montar_lateral())
+        self.split.set_content(self._montar_conteudo())
+        self.toasts.set_child(self.split)
+        self.set_content(self.toasts)
+
+        bp = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 640sp"))
+        bp.add_setter(self.split, "collapsed", True)
+        self.add_breakpoint(bp)
+
+        self.connect("notify::is-active", lambda *_: self.is_active() and self.atualizar())
+        self._preencher_lateral()
+        if self.projetos:
+            self.lista.select_row(self.lista.get_row_at_index(0))
+
+    # --- lateral ---
+    def _montar_lateral(self):
+        cab = Adw.HeaderBar()
+        add = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Adicionar pasta")
+        add.connect("clicked", self._adicionar)
+        cab.pack_start(add)
+
+        self.lista = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.lista.add_css_class("navigation-sidebar")
+        self.lista.connect("row-selected", self._selecionar)
+
+        corpo = Adw.ToolbarView()
+        corpo.add_top_bar(cab)
+        corpo.set_content(Gtk.ScrolledWindow(child=self.lista, vexpand=True))
+        return Adw.NavigationPage(title="Projetos", child=corpo)
+
+    def _preencher_lateral(self):
+        self.lista.remove_all()
+        for caminho in self.projetos:
+            linha = Adw.ActionRow(title=os.path.basename(caminho),
+                                  subtitle=caminho.replace(str(Path.home()), "~"))
+            linha.caminho = caminho
+            n = len(alteracoes(caminho))
+            if n:
+                linha.add_suffix(etiqueta(str(n), "warning"))
+            self.lista.append(linha)
+
+    def _selecionar(self, _lista, linha):
+        if linha is None:
+            return
+        self.atual = linha.caminho
+        self.pagina.set_title(os.path.basename(self.atual))
+        self.split.set_show_content(True)
+        self.atualizar(lateral=False)
+
+    def _adicionar(self, _btn):
+        dlg = Gtk.FileDialog(title="Escolha a pasta do projeto")
+        dlg.select_folder(self, None, self._pasta_escolhida)
+
+    def _pasta_escolhida(self, dlg, res):
+        try:
+            pasta = dlg.select_folder_finish(res).get_path()
+        except GLib.Error:
+            return
+        if eh_repo(pasta):
+            self._registrar(pasta)
+            return
+        alerta = Adw.AlertDialog(
+            heading="Esta pasta ainda não usa Git",
+            body=f"Iniciar o controle de versões em {pasta}?")
+        alerta.add_response("cancelar", "Cancelar")
+        alerta.add_response("iniciar", "Iniciar Git")
+        alerta.set_response_appearance("iniciar", Adw.ResponseAppearance.SUGGESTED)
+
+        def resposta(_d, r):
+            if r == "iniciar":
+                git(pasta, "init", "-b", "main")
+                self._registrar(pasta)
+        alerta.connect("response", resposta)
+        alerta.present(self)
+
+    def _registrar(self, pasta):
+        raiz = git(pasta, "rev-parse", "--show-toplevel")[1].strip() or pasta
+        if raiz not in self.projetos:
+            self.projetos.append(raiz)
+            salvar_projetos(self.projetos)
+        self._preencher_lateral()
+        self.lista.select_row(self.lista.get_row_at_index(self.projetos.index(raiz)))
+
+    def _remover_projeto(self, _btn):
+        if not self.atual:
+            return
+        self.projetos.remove(self.atual)
+        salvar_projetos(self.projetos)
+        self.atual = None
+        self._preencher_lateral()
+        self.toast("Projeto removido da lista (os arquivos continuam na pasta)")
+        if self.projetos:
+            self.lista.select_row(self.lista.get_row_at_index(0))
+        else:
+            self.pilha_vazia.set_visible_child_name("vazio")
+
+    # --- conteúdo ---
+    def _montar_conteudo(self):
+        cab = Adw.HeaderBar()
+        self.switcher = Adw.ViewSwitcher(policy=Adw.ViewSwitcherPolicy.WIDE)
+        cab.set_title_widget(self.switcher)
+        recarregar = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Atualizar")
+        recarregar.connect("clicked", lambda *_: self.atualizar())
+        cab.pack_end(recarregar)
+        menu = Gio.Menu()
+        menu.append("Abrir pasta", "win.abrir-pasta")
+        menu.append("Remover da lista", "win.remover")
+        cab.pack_end(Gtk.MenuButton(icon_name="view-more-symbolic", menu_model=menu))
+        for nome, func in (("abrir-pasta", self._abrir_pasta), ("remover", self._remover_projeto)):
+            acao = Gio.SimpleAction(name=nome)
+            acao.connect("activate", lambda _a, _p, f=func: f(None))
+            self.add_action(acao)
+
+        self.pilha = Adw.ViewStack()
+        self.pilha.add_titled_with_icon(self._pagina_alteracoes(), "alteracoes",
+                                        "Alterações", "document-edit-symbolic")
+        self.pilha.add_titled_with_icon(self._pagina_historico(), "historico",
+                                        "Histórico", "document-open-recent-symbolic")
+        self.switcher.set_stack(self.pilha)
+
+        vazio = Adw.StatusPage(icon_name="folder-symbolic", title="Nenhum projeto",
+                               description="Clique em + para adicionar uma pasta.")
+        self.pilha_vazia = Gtk.Stack()
+        self.pilha_vazia.add_named(vazio, "vazio")
+        self.pilha_vazia.add_named(self.pilha, "projeto")
+
+        corpo = Adw.ToolbarView()
+        corpo.add_top_bar(cab)
+        corpo.set_content(self.pilha_vazia)
+        self.pagina = Adw.NavigationPage(title="Projetos Git", child=corpo)
+        return self.pagina
+
+    def _pagina_alteracoes(self):
+        caixa = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12,
+                        margin_bottom=12, margin_start=12, margin_end=12)
+        self.info = Gtk.Label(xalign=0)
+        self.info.add_css_class("dim-label")
+        caixa.append(self.info)
+
+        self.lista_alt = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.lista_alt.add_css_class("boxed-list")
+        self.lista_alt.connect("row-selected", self._ver_alteracao)
+        self.tudo_salvo = Adw.StatusPage(icon_name="emblem-ok-symbolic", title="Tudo salvo",
+                                         description="Nenhuma alteração desde a última versão.")
+        self.tudo_salvo.add_css_class("compact")
+        rolagem = Gtk.ScrolledWindow(child=self.lista_alt, max_content_height=220,
+                                     propagate_natural_height=True)
+        self.pilha_alt = Gtk.Stack(vhomogeneous=False)
+        self.pilha_alt.add_named(rolagem, "lista")
+        self.pilha_alt.add_named(self.tudo_salvo, "ok")
+        caixa.append(self.pilha_alt)
+
+        self.diff_alt, self.buf_alt = visor_diff()
+        caixa.append(self.diff_alt)
+
+        rodape = Gtk.Box(spacing=8)
+        self.mensagem = Gtk.Entry(hexpand=True,
+                                  placeholder_text="Descreva o que mudou (ex.: adicionei gráfico)")
+        self.mensagem.connect("activate", self._salvar_versao)
+        self.btn_salvar = Gtk.Button(label="Salvar versão")
+        self.btn_salvar.add_css_class("suggested-action")
+        self.btn_salvar.connect("clicked", self._salvar_versao)
+        rodape.append(self.mensagem)
+        rodape.append(self.btn_salvar)
+        self.rodape = rodape
+        caixa.append(rodape)
+        return caixa
+
+    def _pagina_historico(self):
+        caixa = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12,
+                        margin_bottom=12, margin_start=12, margin_end=12)
+        self.lista_hist = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.lista_hist.add_css_class("boxed-list")
+        self.lista_hist.set_placeholder(Gtk.Label(label="Nenhuma versão salva ainda",
+                                                  margin_top=24, margin_bottom=24))
+        self.lista_hist.connect("row-selected", self._ver_versao)
+        caixa.append(Gtk.ScrolledWindow(child=self.lista_hist, max_content_height=260,
+                                        propagate_natural_height=True))
+        self.diff_hist, self.buf_hist = visor_diff()
+        caixa.append(self.diff_hist)
+        return caixa
+
+    # --- atualização ---
+    def atualizar(self, lateral=True):
+        if lateral:
+            selecionado = self.atual
+            self._preencher_lateral()
+            if selecionado in self.projetos:
+                self.lista.handler_block_by_func(self._selecionar)
+                self.lista.select_row(self.lista.get_row_at_index(self.projetos.index(selecionado)))
+                self.lista.handler_unblock_by_func(self._selecionar)
+        if not self.atual:
+            self.pilha_vazia.set_visible_child_name("vazio")
+            return
+        self.pilha_vazia.set_visible_child_name("projeto")
+        repo = self.atual
+
+        ramo = git(repo, "branch", "--show-current")[1].strip() or "—"
+        itens = alteracoes(repo)
+        n = len(itens)
+        self.info.set_label(f"Ramo: {ramo}   ·   "
+                            + (f"{n} arquivo(s) alterado(s)" if n else "sem alterações"))
+
+        self.lista_alt.remove_all()
+        cabeca = tem_head(repo)
+        for xy, caminho in itens:
+            nome, cor = estado(xy)
+            linha = Adw.ActionRow(title=GLib.markup_escape_text(os.path.basename(caminho)),
+                                  subtitle=GLib.markup_escape_text(os.path.dirname(caminho)))
+            linha.add_prefix(etiqueta(nome, cor))
+            if cabeca and xy != "??" and "A" not in xy:
+                desfazer = Gtk.Button(icon_name="edit-undo-symbolic", valign=Gtk.Align.CENTER,
+                                      tooltip_text="Desfazer alterações deste arquivo")
+                desfazer.add_css_class("flat")
+                desfazer.connect("clicked", self._desfazer, caminho)
+                linha.add_suffix(desfazer)
+            linha.dados = (xy, caminho)
+            self.lista_alt.append(linha)
+        self.pilha_alt.set_visible_child_name("lista" if n else "ok")
+        self.diff_alt.set_visible(bool(n))
+        self.rodape.set_sensitive(bool(n))
+        if n:
+            self.lista_alt.select_row(self.lista_alt.get_row_at_index(0))
+
+        self.lista_hist.remove_all()
+        for i, (hash_, msg, quando, autor) in enumerate(historico(repo)):
+            linha = Adw.ActionRow(title=GLib.markup_escape_text(msg),
+                                  subtitle=f"{quando} · {GLib.markup_escape_text(autor)} · {hash_}")
+            if i > 0:
+                restaurar = Gtk.Button(label="Restaurar", valign=Gtk.Align.CENTER)
+                restaurar.add_css_class("flat")
+                restaurar.connect("clicked", self._restaurar, hash_, msg)
+                linha.add_suffix(restaurar)
+            else:
+                linha.add_suffix(etiqueta("atual", "accent"))
+            linha.hash = hash_
+            self.lista_hist.append(linha)
+        mostrar_diff(self.buf_hist, "Selecione uma versão para ver o que mudou nela.")
+
+    def _ver_alteracao(self, _lista, linha):
+        if linha is not None:
+            mostrar_diff(self.buf_alt, diff_arquivo(self.atual, *linha.dados))
+
+    def _ver_versao(self, _lista, linha):
+        if linha is not None:
+            texto = git(self.atual, "show", "--stat", "--patch", "--date=format:%d/%m/%Y %H:%M",
+                        linha.hash)[1]
+            mostrar_diff(self.buf_hist, texto[:MAX_DIFF])
+
+    # --- ações ---
+    def _salvar_versao(self, _w):
+        msg = self.mensagem.get_text().strip()
+        if not msg:
+            self.toast("Escreva uma descrição antes de salvar")
+            self.mensagem.grab_focus()
+            return
+        git(self.atual, "add", "-A")
+        cod, _, err = git(self.atual, "commit", "-m", msg)
+        if cod:
+            self.toast(f"Não foi possível salvar: {err.splitlines()[-1] if err else cod}")
+            return
+        self.mensagem.set_text("")
+        self.toast("Versão salva")
+        self.atualizar()
+
+    def _desfazer(self, _btn, caminho):
+        self._confirmar(
+            "Desfazer alterações?",
+            f"“{caminho}” voltará a ser como estava na última versão salva. "
+            "As mudanças feitas depois disso serão perdidas.",
+            "Desfazer",
+            lambda: git(self.atual, "restore", "--source=HEAD", "--staged", "--worktree",
+                        "--", caminho))
+
+    def _restaurar(self, _btn, hash_, msg):
+        if alteracoes(self.atual):
+            self.toast("Salve ou desfaça as alterações atuais antes de restaurar")
+            return
+
+        def fazer():
+            git(self.atual, "restore", f"--source={hash_}", "--staged", "--worktree", "--", ".")
+            git(self.atual, "commit", "-m", f"Restaurado para a versão “{msg}” ({hash_})")
+        self._confirmar(
+            "Restaurar esta versão?",
+            f"Os arquivos voltarão a ficar como em “{msg}”. Isso fica salvo como uma nova "
+            "versão, então dá para voltar atrás depois.",
+            "Restaurar", fazer)
+
+    def _confirmar(self, titulo, texto, rotulo, acao):
+        alerta = Adw.AlertDialog(heading=titulo, body=texto)
+        alerta.add_response("cancelar", "Cancelar")
+        alerta.add_response("ok", rotulo)
+        alerta.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def resposta(_d, r):
+            if r == "ok":
+                acao()
+                self.atualizar()
+        alerta.connect("response", resposta)
+        alerta.present(self)
+
+    def _abrir_pasta(self, _w):
+        if self.atual:
+            Gio.AppInfo.launch_default_for_uri(Path(self.atual).as_uri(), None)
+
+    def toast(self, texto):
+        self.toasts.add_toast(Adw.Toast(title=GLib.markup_escape_text(texto)))
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="local.luizfelipe.ProjetosGit")
+
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        css = Gtk.CssProvider()
+        css.load_from_string(CSS)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    def do_activate(self):
+        (self.get_active_window() or Janela(self)).present()
+
+
+if __name__ == "__main__":
+    App().run(None)

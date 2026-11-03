@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Projetos Git
+Comment=Ver alterações, salvar versões e restaurar projetos
+Exec=/home/luizfelipe/.local/bin/projetos-git
+Icon=folder-git-symbolic
+Categories=Development;
+Keywords=git;versão;projetos;histórico;
+StartupWMClass=local.luizfelipe.ProjetosGit

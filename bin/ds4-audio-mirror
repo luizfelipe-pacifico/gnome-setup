@@ -1,0 +1,24 @@
+#!/bin/bash
+# Espelha o áudio do RPCS3 para o DualShock 4 em paralelo, sem trocar a saída padrão.
+# A cada 2s: se o RPCS3 estiver tocando e o controle estiver ligado, cria os links que faltam
+# (pw-link recusa link duplicado, então repetir é inofensivo).
+APP_RE='rpcs3|AppRun\.wrapped'
+while true; do
+  ds4=$(pw-link -i | grep -m1 -E '^alsa_output\.[^:]*(Wireless_Controller|DualShock)[^:]*:playback_FL$' | cut -d: -f1)
+  if [ -n "$ds4" ]; then
+    # nós de saída de áudio cujo app/processo é o RPCS3
+    pw-dump | jq -r --arg re "$APP_RE" '.[] | select(.type=="PipeWire:Interface:Node")
+      | .info.props | select(."media.class"=="Stream/Output/Audio")
+      | select(((."application.name"//"") + " " + (."application.process.binary"//"")) | test($re;"i"))
+      | ."node.name"' | sort -u | while read -r node; do
+      pw-link -o | grep -F "$node:output_" | while read -r port; do
+        case "$port" in
+          *_FL)   pw-link "$port" "$ds4:playback_FL" ;;
+          *_FR)   pw-link "$port" "$ds4:playback_FR" ;;
+          *_MONO) pw-link "$port" "$ds4:playback_FL"; pw-link "$port" "$ds4:playback_FR" ;;
+        esac 2>/dev/null
+      done
+    done
+  fi
+  sleep 2
+done

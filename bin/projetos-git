@@ -76,7 +76,8 @@ def estado(xy):
 def historico(repo, limite=200):
     if not tem_head(repo):
         return []
-    _, out, _ = git(repo, "log", f"-n{limite}", "--pretty=format:%h%x1f%s%x1f%ar%x1f%an")
+    _, out, _ = git(repo, "log", f"-n{limite}", "--date=format:%d/%m/%Y %H:%M",
+                     "--pretty=format:%h%x1f%s%x1f%cd%x1f%an")
     return [linha.split("\x1f") for linha in out.splitlines() if linha]
 
 

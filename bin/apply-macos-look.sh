@@ -20,12 +20,13 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 #    Discos, Câmera, Extensões; Web ganha um globo próprio no formato do Mac
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
 #  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
+#  - lixeira clara no tema claro e escura no tema escuro (tema "MacApps-dark", que herda o MacApps)
 #  - Relógios, Mapas, Configurações, Fontes, Logs, Papers e Apostrophe: ícone do GNOME
 # Bateria, rede, volume, símbolos e apps de fora continuam como são. Só o código-fonte dos
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=6
+MAC_VERSAO=7
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
@@ -106,6 +107,16 @@ with open(f"{OUT}/apps/scalable/org.gnome.Epiphany.svg", "w") as f:
 for name in LIXEIRA:
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")
+# Tema escuro: só troca a lixeira pela versão escura; o resto vem do MacApps
+ESCURO = OUT + "-dark"
+os.makedirs(f"{ESCURO}/places/scalable")
+for name in LIXEIRA:
+    if path := whitesur("places", f"{name}-dark"):
+        shutil.copy(path, f"{ESCURO}/places/scalable/{name}.svg")
+with open(f"{ESCURO}/index.theme", "w") as f:
+    f.write("[Icon Theme]\nName=MacApps-dark\nComment=MacApps com a lixeira escura\n"
+            "Inherits=MacApps,Adwaita,hicolor\nDirectories=places/scalable\n\n"
+            "[places/scalable]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Places\n")
 # Pastas coloridas do Mac (os ícones simbólicos da barra lateral continuam os do GNOME)
 nomes = {f[:-4] for d in ("src", "links") for f in os.listdir(f"{SRC}/{d}/places/scalable")
          if f.endswith(".svg")}
@@ -139,9 +150,11 @@ Type=Scalable
 Context=Places
 EOF
   echo "$MAC_VERSAO" > "$TMP/MacApps/.versao"
-  sudo rm -rf "$MAC"
+  sudo rm -rf "$MAC" "$MAC-dark"
   sudo cp -r "$TMP/MacApps" "$MAC"
+  sudo cp -r "$TMP/MacApps-dark" "$MAC-dark"
   sudo gtk-update-icon-cache -qf "$MAC" || true
+  sudo gtk-update-icon-cache -qf "$MAC-dark" || true
   rm -rf "$TMP"
 fi
 pacman -Q whitesur-icon-theme &>/dev/null && sudo pacman -Rns --noconfirm whitesur-icon-theme

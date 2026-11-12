@@ -151,7 +151,7 @@ def etiqueta(texto, cor):
 
 class Janela(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title="Projetos Git")
+        super().__init__(application=app, title="Versões")
         self.set_default_size(1000, 680)
         self.projetos = carregar_projetos()
         self.atual = None
@@ -287,7 +287,7 @@ class Janela(Adw.ApplicationWindow):
         corpo = Adw.ToolbarView()
         corpo.add_top_bar(cab)
         corpo.set_content(self.pilha_vazia)
-        self.pagina = Adw.NavigationPage(title="Projetos Git", child=corpo)
+        self.pagina = Adw.NavigationPage(title="Versões", child=corpo)
         return self.pagina
 
     def _pagina_alteracoes(self):

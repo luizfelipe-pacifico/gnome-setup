@@ -1,9 +1,11 @@
 [Desktop Entry]
-Name=Seletor de Tema
+Name=Aparência
 Comment=Alterna entre estilo Apple e GNOME, claro ou escuro
 Exec=/usr/local/bin/seletor-de-tema
 Icon=seletor-de-tema
 StartupWMClass=local.seletor.tema
 Terminal=false
+# Fica fora da grade de apps: abre pelo menu do pé do GNOME (Aparência…)
+NoDisplay=true
 Type=Application
 Categories=Settings;

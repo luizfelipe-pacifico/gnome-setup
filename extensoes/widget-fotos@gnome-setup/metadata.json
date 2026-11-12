@@ -1,0 +1,8 @@
+{
+  "uuid": "widget-fotos@gnome-setup",
+  "name": "Widget de fotos",
+  "description": "Um quadro na área de trabalho que vai passando as fotos que você escolheu, como o widget de Fotos do Mac. Configure em Aparência… no menu do pé do GNOME.",
+  "shell-version": ["47", "48", "49", "50", "51"],
+  "settings-schema": "org.gnome.shell.extensions.widget-fotos",
+  "url": "https://github.com/luizfelipe-pacifico/gnome-setup"
+}

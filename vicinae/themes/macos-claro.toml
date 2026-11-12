@@ -1,0 +1,48 @@
+# Vicinae com as cores do macOS (modo claro), usado no estilo Apple do Seletor de Tema
+[meta]
+name = "macOS claro"
+description = "Cores do sistema do macOS, modo claro"
+variant = "light"
+inherits = "vicinae-light"
+
+[colors.core]
+accent = "#007aff"
+accent_foreground = "#ffffff"
+background = "#f5f5f7"
+foreground = "#1d1d1f"
+secondary_background = "#e8e8ed"
+border = "#d2d2d7"
+
+[colors.main_window]
+border = "#c7c7cc"
+
+[colors.accents]
+blue = "#007aff"
+green = "#34c759"
+magenta = "#ff2d55"
+orange = "#ff9500"
+red = "#ff3b30"
+yellow = "#ffcc00"
+cyan = "#32ade6"
+purple = "#af52de"
+
+[colors.text]
+muted = "#6e6e73"
+placeholder = "#a1a1a6"
+danger = "#ff3b30"
+success = "#34c759"
+selection = { background = "#007aff", foreground = "#ffffff" }
+
+[colors.input]
+border = "#d2d2d7"
+border_focus = "#007aff"
+
+[colors.list.item.selection]
+background = "#007aff"
+foreground = "#ffffff"
+secondary_background = "#007aff"
+secondary_foreground = "#ffffff"
+
+[colors.grid.item]
+background = "#e8e8ed"
+selection = { outline = "#007aff" }

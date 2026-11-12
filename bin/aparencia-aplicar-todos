@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Grava a aparência como padrão do sistema (todos os usuários) via dconf. Roda como root (pkexec).
+# Grava a aparência como padrão do sistema (todos os usuários e a tela de login) via dconf.
+# Roda como root (pkexec).
 # Uso: aparencia-aplicar-todos <dark|light> <apple|gnome> <partes-com-vidro separadas por vírgula>
 set -e
 case "$1" in dark) SCHEME=prefer-dark ;; light) SCHEME=default ;; *) echo "modo inválido" >&2; exit 1 ;; esac
@@ -13,7 +14,10 @@ F=/etc/dconf/db/local.d/00-aparencia
   if [ "$2" = apple ]; then
     # Ponteiro, ícones e fonte só se estiverem instalados para o sistema
     [ -d /usr/share/icons/macOS/cursors ] && echo "cursor-theme='macOS'"
-    [ -d /usr/local/share/icons/MacApps ] && echo "icon-theme='MacApps'"
+    if [ -d /usr/local/share/icons/MacApps ]; then
+      if [ "$1" = dark ] && [ -d /usr/local/share/icons/MacApps-dark ]; then echo "icon-theme='MacApps-dark'"
+      else echo "icon-theme='MacApps'"; fi
+    fi
     if fc-list : family | grep -q '^Inter'; then
       echo "font-name='Inter 11'"
       echo "document-font-name='Inter 11'"
@@ -49,4 +53,10 @@ F=/etc/dconf/db/local.d/00-aparencia
   echo "[org/gnome/shell/extensions/blur-my-shell/appfolder]"
   echo "style-dialogs=3"
 } > "$F"
+# Tela de login (GDM): mesmo modo claro/escuro, ponteiro, fonte, ícones e relógio.
+# O perfil abaixo é o jeito documentado do GNOME de o GDM ler configurações do sistema.
+mkdir -p /etc/dconf/db/gdm.d
+printf 'user-db:user\nsystem-db:gdm\nfile-db:/usr/share/gdm/greeter-dconf-defaults\n' > /etc/dconf/profile/gdm
+sed -n '/^\[org\/gnome\/desktop\/interface\]/,/^$/p' "$F" > /etc/dconf/db/gdm.d/90-aparencia
+
 dconf update

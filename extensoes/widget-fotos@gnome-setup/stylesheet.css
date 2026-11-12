@@ -1,0 +1,9 @@
+.widget-fotos {
+  border-radius: 22px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.widget-fotos-foto {
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+}

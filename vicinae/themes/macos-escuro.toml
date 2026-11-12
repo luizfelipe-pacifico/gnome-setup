@@ -1,0 +1,48 @@
+# Vicinae com as cores do macOS (modo escuro), usado no estilo Apple do Seletor de Tema
+[meta]
+name = "macOS escuro"
+description = "Cores do sistema do macOS, modo escuro"
+variant = "dark"
+inherits = "vicinae-dark"
+
+[colors.core]
+accent = "#0a84ff"
+accent_foreground = "#ffffff"
+background = "#1e1e20"
+foreground = "#f5f5f7"
+secondary_background = "#2c2c2e"
+border = "#3a3a3c"
+
+[colors.main_window]
+border = "#48484a"
+
+[colors.accents]
+blue = "#0a84ff"
+green = "#30d158"
+magenta = "#ff375f"
+orange = "#ff9f0a"
+red = "#ff453a"
+yellow = "#ffd60a"
+cyan = "#64d2ff"
+purple = "#bf5af2"
+
+[colors.text]
+muted = "#98989d"
+placeholder = "#6e6e73"
+danger = "#ff453a"
+success = "#30d158"
+selection = { background = "#0a84ff", foreground = "#ffffff" }
+
+[colors.input]
+border = "#3a3a3c"
+border_focus = "#0a84ff"
+
+[colors.list.item.selection]
+background = "#0a84ff"
+foreground = "#ffffff"
+secondary_background = "#0a84ff"
+secondary_foreground = "#ffffff"
+
+[colors.grid.item]
+background = "#2c2c2e"
+selection = { outline = "#0a84ff" }

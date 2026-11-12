@@ -25,12 +25,21 @@ rm -f "$HOME/.local/share/applications/seletor-de-tema.desktop" \
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
-echo "==> Extensões do repositório e ícone do Calendário"
+echo "==> Extensões do repositório, temas do Vicinae e ícone do Calendário"
 for d in extensoes/*/; do
   rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
   cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
+  [ -d "$d/schemas" ] && glib-compile-schemas "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")/schemas"
 done
+install -Dm644 -t "$HOME/.local/share/vicinae/themes" vicinae/themes/*.toml
 /usr/local/bin/icone-calendario
+
+K=$(ls -d "$HOME"/.local/share/gnome-shell/extensions/kiwimenu@kemma/schemas 2>/dev/null) &&
+  for kv in "custom-menu-label|'Aparência…'" "custom-menu-command|'/usr/local/bin/seletor-de-tema'" \
+            "custom-menu-icon|'/usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg'" \
+            "custom-menu-enabled|true"; do
+    gsettings --schemadir "$K" set org.gnome.shell.extensions.kiwimenu "${kv%%|*}" "${kv#*|}"
+  done
 
 echo "==> Reaplicando o tema atual"
 /usr/local/bin/seletor-de-tema --reaplicar

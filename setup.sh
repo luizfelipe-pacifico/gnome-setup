@@ -226,7 +226,7 @@ sudo update-desktop-database -q /usr/local/share/applications 2>/dev/null || tru
 grep -qs gamemode-profile "$HOME/.config/gamemode.ini" && rm -f "$HOME/.config/gamemode.ini"
 mkdir -p "$HOME/.config/app-grid-order"
 [ -f "$HOME/.config/app-grid-order/mode" ] || echo alphabetical > "$HOME/.config/app-grid-order/mode"
-ok "Seletor de Tema, Monitor, Controle do zram, Projetos Git, Ordem dos Aplicativos, relatórios de crash"
+ok "Aparência, Monitor, Controle do zram, Versões, Ordem dos Aplicativos, relatórios de crash"
 
 # ---------------------------------------------------------------- extensões
 etapa "Extensões do GNOME"
@@ -249,6 +249,7 @@ for d in "$REPO_DIR"/extensoes/*/; do
   mkdir -p "$HOME/.local/share/gnome-shell/extensions"
   rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
   cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
+  [ -d "$d/schemas" ] && glib-compile-schemas "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")/schemas"
   ok "$(basename "$d")"
 done
 
@@ -262,6 +263,7 @@ sessao /usr/local/bin/apply-macos-look.sh || aviso "algum componente do estilo A
 etapa "Configurações do GNOME"
 sessao dconf load / < "$REPO_DIR/gnome/configuracoes.ini"
 command -v vicinae >/dev/null && systemctl --user enable vicinae.service 2>/dev/null || true
+install -Dm644 -t "$HOME/.local/share/vicinae/themes" "$REPO_DIR"/vicinae/themes/*.toml   # cores do Mac
 systemctl --user enable systemd-tmpfiles-clean.timer 2>/dev/null || true   # limpa o cache do usuário
 systemctl --user daemon-reload 2>/dev/null || true
 systemctl --user enable icone-calendario.timer 2>/dev/null || true         # data de hoje no ícone

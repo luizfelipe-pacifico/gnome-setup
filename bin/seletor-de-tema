@@ -2,21 +2,47 @@
 # Seletor de aparência: estilo Apple (macOS) claro/escuro ou GNOME padrão
 # Uso: seletor-de-tema [--reaplicar | --tema apple-dark|apple-light|gnome-dark|gnome-light]
 import glob
+import hashlib
 import json
 import math
 import os
 import re
 import subprocess
 import sys
+import threading
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Adw, Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 EXT = "blur-my-shell@aunetx"
 LAMP_EXT = "compiz-alike-magic-lamp-effect@hermes83.github.com"
+WIDGET_EXT = "widget-fotos@gnome-setup"
+WIDGET_SCHEMA = "org.gnome.shell.extensions.widget-fotos"
+FOTOS_DIR = os.path.join(GLib.get_user_data_dir(), "widget-fotos")
+# Vicinae (Super+Espaço) com cara de Spotlight: este arquivo entra nos "imports" do settings.json
+VICINAE_DIR = os.path.join(GLib.get_user_config_dir(), "vicinae")
+VICINAE_MAC = os.path.join(VICINAE_DIR, "estilo-mac.json")
+VICINAE_MAC_CFG = {
+    "font": {"normal": {"family": "Inter"}},
+    "theme": {"light": {"name": "macos-claro"}, "dark": {"name": "macos-escuro"}},
+    "launcher_window": {
+        "opacity": 0.86,              # vidro translúcido
+        "material": "auto",
+        "rounding": 22,
+        "compact_mode": {"enabled": True},   # só a barra de busca até digitar, como o Spotlight
+        "size": {"width": 680, "height": 440},
+    },
+}
+FOTO_MAX = 720  # as fotos são copiadas já reduzidas: pouca RAM no Shell e pouco disco
+INTERVALOS = [(30, "30 segundos"), (60, "1 minuto"), (300, "5 minutos"), (900, "15 minutos"),
+              (3600, "1 hora")]
+TAMANHOS = [(180, "Pequeno"), (260, "Médio"), (360, "Grande")]
+CANTOS = [("superior-esquerdo", "Em cima, à esquerda"), ("superior-direito", "Em cima, à direita"),
+          ("inferior-esquerdo", "Embaixo, à esquerda"), ("inferior-direito", "Embaixo, à direita")]
 APPLE_EXTS = [EXT, LAMP_EXT]  # ligadas só no estilo Apple
 BLUR_SCHEMA = "org.gnome.shell.extensions.blur-my-shell"
 SCRIPT = next(p for p in ["/usr/local/bin/apply-macos-look.sh",
@@ -46,7 +72,8 @@ def ext_dir(uuid):
 
 
 def icons_for(dark):
-    return ICONS
+    # No escuro, "MacApps-dark" (lixeira escura); no claro, "MacApps" (lixeira clara)
+    return f"{ICONS}-dark" if dark and icon_dir(f"{ICONS}-dark") else ICONS
 
 
 _font_ok = False
@@ -304,20 +331,65 @@ def apply_settings(t):
         json.dump(originals, f, indent=2, ensure_ascii=False)
 
 
-def set_extensions(on):
+def set_extension(uuid, on):
+    if not ext_dir(uuid):
+        return
     shell = settings("org.gnome.shell")
-    enabled = shell.get_strv("enabled-extensions")
-    disabled = shell.get_strv("disabled-extensions")
-    for uuid in APPLE_EXTS:
-        if not ext_dir(uuid):
-            continue
-        if on:
-            enabled = enabled + [uuid] if uuid not in enabled else enabled
-            disabled = [u for u in disabled if u != uuid]
-        else:
-            enabled = [u for u in enabled if u != uuid]
-    shell.set_strv("enabled-extensions", enabled)
+    enabled = [u for u in shell.get_strv("enabled-extensions") if u != uuid]
+    disabled = [u for u in shell.get_strv("disabled-extensions") if u != uuid]
+    shell.set_strv("enabled-extensions", enabled + [uuid] if on else enabled)
     shell.set_strv("disabled-extensions", disabled)
+
+
+def extension_enabled(uuid):
+    return uuid in settings("org.gnome.shell").get_strv("enabled-extensions")
+
+
+def set_extensions(on):
+    for uuid in APPLE_EXTS:
+        set_extension(uuid, on)
+
+
+def set_vicinae(on):
+    if not os.path.isdir(VICINAE_DIR):
+        return
+    with open(VICINAE_MAC, "w") as f:
+        json.dump(VICINAE_MAC_CFG if on else {}, f, indent=2, ensure_ascii=False)
+    # Garante o import uma vez; o settings.json tem comentários "//" no topo, que são mantidos
+    path = os.path.join(VICINAE_DIR, "settings.json")
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        text = '{\n  "$schema": "https://vicinae.com/schemas/config.json"\n}\n'
+    header = "".join(l for l in text.splitlines(True) if l.lstrip().startswith("//"))
+    try:
+        cfg = json.loads("".join(l for l in text.splitlines(True) if not l.lstrip().startswith("//")))
+    except ValueError:
+        return  # arquivo editado à mão de um jeito que não dá para ler: não mexe
+    imports = cfg.setdefault("imports", [])
+    if VICINAE_MAC not in imports:
+        imports.append(VICINAE_MAC)
+        with open(path, "w") as f:
+            f.write(header + ("\n" if header else "") + json.dumps(cfg, indent=3, ensure_ascii=False) + "\n")
+
+
+def fotos_atuais():
+    try:
+        return sorted(f for f in os.listdir(FOTOS_DIR) if f.lower().endswith((".jpg", ".png")))
+    except OSError:
+        return []
+
+
+def copiar_foto(path):
+    """Copia a foto reduzida (no máximo FOTO_MAX px) e já girada para a pasta do widget."""
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, FOTO_MAX, FOTO_MAX, True)
+    pixbuf = pixbuf.apply_embedded_orientation() or pixbuf
+    nome = hashlib.sha1(path.encode()).hexdigest()[:16] + ".jpg"
+    os.makedirs(FOTOS_DIR, exist_ok=True)
+    temp = os.path.join(FOTOS_DIR, "." + nome)
+    pixbuf.savev(temp, "jpeg", ["quality"], ["85"])
+    os.replace(temp, os.path.join(FOTOS_DIR, nome))
 
 
 def script_status():
@@ -335,6 +407,7 @@ def apply_theme(t):
         "color-scheme", "prefer-dark" if t["dark"] else "default")
     apply_settings(t)
     set_user_css(t["apple"])
+    set_vicinae(t["apple"])
     set_extensions(t["apple"])
     Gio.Settings.sync()
 
@@ -500,6 +573,49 @@ class App(Adw.Application):
             self.part_rows.append((part, row))
         page.add(glass_group)
 
+        # Widget de fotos na área de trabalho (vem desligado)
+        self.widget_settings = settings(WIDGET_SCHEMA, ext=WIDGET_EXT)
+        widget_group = Adw.PreferencesGroup(
+            title="Widget de fotos",
+            description="Um quadro na área de trabalho que vai passando as fotos que você escolher, "
+                        "como no Mac. Clique nele para abrir a foto.")
+        self.widget_switch = Adw.SwitchRow(title="Mostrar na área de trabalho",
+                                           active=extension_enabled(WIDGET_EXT))
+        self.widget_switch.add_prefix(Gtk.Image(icon_name="image-x-generic-symbolic"))
+        self.widget_switch.connect("notify::active",
+                                   lambda row, _p: set_extension(WIDGET_EXT, row.get_active()))
+        widget_group.add(self.widget_switch)
+
+        self.fotos_row = Adw.ActionRow(title="Fotos")
+        escolher = Gtk.Button(label="Escolher…", valign=Gtk.Align.CENTER)
+        escolher.connect("clicked", self.on_escolher_fotos)
+        limpar = Gtk.Button(icon_name="user-trash-symbolic", valign=Gtk.Align.CENTER,
+                            tooltip_text="Tirar todas as fotos")
+        limpar.add_css_class("flat")
+        limpar.connect("clicked", self.on_limpar_fotos)
+        self.fotos_row.add_suffix(escolher)
+        self.fotos_row.add_suffix(limpar)
+        widget_group.add(self.fotos_row)
+
+        self.widget_combos = []
+        for key, title, options, getter in (
+                ("intervalo", "Trocar a cada", INTERVALOS, "uint"),
+                ("tamanho", "Tamanho", TAMANHOS, "uint"),
+                ("canto", "Posição", CANTOS, "string")):
+            combo = Adw.ComboRow(title=title, model=Gtk.StringList.new([t for _, t in options]))
+            if self.widget_settings:
+                atual = getattr(self.widget_settings, f"get_{getter}")(key)
+                combo.set_selected(next((i for i, (v, _) in enumerate(options) if v == atual), 1))
+            combo.connect("notify::selected", self.on_widget_combo, key, options, getter)
+            widget_group.add(combo)
+            self.widget_combos.append(combo)
+        if not self.widget_settings:
+            for row in (self.widget_switch, self.fotos_row, *self.widget_combos):
+                row.set_sensitive(False)
+            self.widget_switch.set_subtitle("Rode o instalador para colocar o widget")
+        self.atualizar_fotos()
+        page.add(widget_group)
+
         # Padrão para todos os usuários (pede senha de administrador)
         system_group = Adw.PreferencesGroup(title="Todos os usuários")
         self.all_users_btn = Gtk.Button(label="Aplicar", valign=Gtk.Align.CENTER)
@@ -564,6 +680,55 @@ class App(Adw.Application):
         ok = os.waitstatus_to_exitcode(status) == 0
         self.toast.add_toast(Adw.Toast(
             title="Aplicado para todos os usuários" if ok else "Não foi aplicado para todos"))
+
+    def on_widget_combo(self, combo, _pspec, key, options, getter):
+        if self.widget_settings:
+            getattr(self.widget_settings, f"set_{getter}")(key, options[combo.get_selected()][0])
+
+    def atualizar_fotos(self):
+        n = len(fotos_atuais())
+        self.fotos_row.set_subtitle(
+            "Nenhuma foto escolhida" if n == 0 else f"{n} foto{'s' if n > 1 else ''}")
+
+    def on_escolher_fotos(self, _btn):
+        filtro = Gtk.FileFilter(name="Imagens")
+        filtro.add_mime_type("image/*")
+        filtros = Gio.ListStore.new(Gtk.FileFilter)
+        filtros.append(filtro)
+        dialog = Gtk.FileDialog(title="Escolher fotos para o widget", filters=filtros)
+        dialog.open_multiple(self.props.active_window, None, self.on_fotos_escolhidas)
+
+    def on_fotos_escolhidas(self, dialog, result):
+        try:
+            arquivos = dialog.open_multiple_finish(result)
+        except GLib.Error:
+            return  # cancelou
+        paths = [f.get_path() for f in arquivos if f.get_path()]
+        self.fotos_row.set_subtitle(f"Copiando {len(paths)} foto(s)…")
+
+        def copiar():
+            falhas = 0
+            for path in paths:
+                try:
+                    copiar_foto(path)
+                except GLib.Error:
+                    falhas += 1
+            GLib.idle_add(self.fotos_copiadas, falhas)
+
+        threading.Thread(target=copiar, daemon=True).start()
+
+    def fotos_copiadas(self, falhas):
+        self.atualizar_fotos()
+        if falhas:
+            self.toast.add_toast(Adw.Toast(title=f"{falhas} arquivo(s) não são imagens que dá para abrir"))
+        elif not self.widget_switch.get_active():
+            self.widget_switch.set_active(True)  # escolheu fotos: já mostra o widget
+        return GLib.SOURCE_REMOVE
+
+    def on_limpar_fotos(self, _btn):
+        for nome in fotos_atuais():
+            os.remove(os.path.join(FOTOS_DIR, nome))
+        self.atualizar_fotos()
 
     def on_part_toggled(self, row, _pspec, part):
         if not self.syncing:

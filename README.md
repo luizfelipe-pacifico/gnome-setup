@@ -16,9 +16,9 @@ Num Arch Linux com GNOME recém-instalado, abra o Terminal e rode **como seu usu
 bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/instalar.sh)
 ```
 
-No final aparece uma janela para **reiniciar**. No primeiro login depois disso, o
-**Seletor de Tema** abre sozinho para você escolher a aparência: GNOME claro/escuro ou
-estilo Mac claro/escuro.
+No final aparece uma janela para **reiniciar**. No primeiro login depois disso, a janela
+**Aparência** abre sozinha para você escolher: GNOME claro/escuro ou estilo Mac claro/escuro.
+Depois ela fica no menu do pé do GNOME (canto superior esquerdo) → **Aparência…**.
 
 Para **atualizar** depois, rode o mesmo comando: ele baixa a versão nova e só faz o que falta.
 O log fica em `~/.cache/gnome-setup-instalacao.log`.
@@ -68,18 +68,18 @@ Google Drive / OneDrive pelo Arquivos (Contas Online).
 
 | App | Para quê |
 | --- | --- |
-| Seletor de Tema | Alterna GNOME e estilo Mac, claro ou escuro (abaixo) |
+| Aparência | No menu do pé do GNOME: GNOME ou estilo Mac, claro ou escuro (abaixo), e o widget de fotos |
 | Monitor de Temperatura | Temperatura, ventoinha, CPU, RAM, bateria e troca do modo de energia. Funciona com Intel, AMD e ARM. |
 | Controle do zram | Arraste para escolher quanto da RAM vira memória comprimida |
 | Ordem dos Aplicativos | Grade de apps em ordem alfabética ou aleatória |
-| Projetos Git | Ver alterações, salvar versões e restaurar projetos |
+| Versões | Salvar versões dos projetos (Git), ver o que mudou e voltar atrás |
 | Relatórios de crash | Cada programa que trava gera um relatório legível em `/var/log/crash-reports` |
 
 **Extensões**: Dash to Dock, Kiwi Menu e AppIndicator (versão certa para o seu GNOME,
-direto do extensions.gnome.org) e a minha **Seleção limpa**: a captura de tela (Print Screen)
-abre sem a seleção anterior, é só arrastar para selecionar de novo.
+direto do extensions.gnome.org) e as minhas **Seleção limpa**: a captura de tela (Print Screen)
+abre sem a seleção anterior, é só arrastar para selecionar de novo; e **Widget de fotos**.
 
-## Estilo Mac (pelo Seletor de Tema)
+## Estilo Mac (pela janela Aparência)
 
 Escolher um tema "Apple" aplica o estilo; escolher um tema "GNOME" desfaz tudo e volta ao
 que você tinha antes. Os ajustes valem só para os apps nativos do GNOME e para os meus apps.
@@ -98,7 +98,12 @@ ganham as cores (por `userChrome.css`).
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
 - papel de parede próprio, claro e escuro
-- **Super+Espaço** abre a busca (Vicinae), como o Spotlight
+- **Super+Espaço** abre a busca (Vicinae) com cara de Spotlight: só a barra até digitar, vidro,
+  cantos arredondados e as cores do Mac
+- lixeira clara no tema claro e escura no escuro
+- "Usar esta aparência para todos" também leva tema, ponteiro, fonte e ícones para a tela de login
+- **widget de fotos** (vem desligado): um quadro na área de trabalho que passa as fotos que você
+  escolher, como no Mac. Liga e escolhe as fotos em Aparência… (elas são copiadas já reduzidas)
 - vidro na barra, dock e tela de apps (Blur my Shell, modo leve) e efeito de minimizar "lâmpada"
 
 ## Organização do repositório
@@ -111,6 +116,7 @@ applications/, icons/  atalhos e ícones dos apps
 wallpapers/            papéis de parede (gerar.py recria)
 gnome/configuracoes.ini   configurações do GNOME (dconf)
 extensoes/             minhas extensões do GNOME Shell
+vicinae/themes/        cores do Mac para a busca (Vicinae)
 sistema/               arquivos de sistema: desempenho, zram, discos, limpeza, crash, firewall
 pessoal/               coisas só da minha máquina (RPCS3, controle de PS4); o setup não instala
 ```

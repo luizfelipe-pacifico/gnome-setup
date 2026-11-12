@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.widget-fotos" path="/org/gnome/shell/extensions/widget-fotos/">
+    <key name="intervalo" type="u">
+      <default>60</default>
+      <summary>Segundos entre uma foto e outra</summary>
+    </key>
+    <key name="tamanho" type="u">
+      <default>260</default>
+      <summary>Lado do quadro, em pixels</summary>
+    </key>
+    <key name="canto" type="s">
+      <choices>
+        <choice value="superior-esquerdo"/><choice value="superior-direito"/>
+        <choice value="inferior-esquerdo"/><choice value="inferior-direito"/>
+      </choices>
+      <default>'superior-direito'</default>
+      <summary>Canto da tela onde o quadro fica</summary>
+    </key>
+  </schema>
+</schemalist>

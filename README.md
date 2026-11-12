@@ -86,8 +86,11 @@ Apps de fora (Firefox, Chrome, Flatpaks etc.) continuam como são.
 
 - botões fechar/minimizar/maximizar coloridos e à esquerda
 - ponteiro do macOS e fonte Inter
-- alguns ícones de apps no estilo Mac (Console, Monitor, Lixeira, Ajustes...). Bateria, rede,
-  volume e os ícones que seriam cópia dos apps da Apple continuam os do GNOME.
+- ícones dos apps nativos no formato do Mac, sem copiar os da Apple: Console, Monitor,
+  Calculadora, Editor de Texto e Lixeira no estilo Mac. Arquivos e Programas com uma pasta e uma
+  sacola azuis. Web, Calendário, Música, Mapas, Configurações e os outros com o próprio ícone do
+  GNOME numa base arredondada. Bateria, rede, volume e apps de fora continuam como são
+  (~600 KB no disco).
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
 - papel de parede próprio, claro e escuro

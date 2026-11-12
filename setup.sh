@@ -208,7 +208,8 @@ ok "modos de energia (Economia/Equilibrado/Desempenho) e GameMode ligando o Dese
 # ---------------------------------------------------------------- meus apps
 etapa "Instalando meus apps"
 APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp projetos-git
-      gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar limpeza-sistema)
+      gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar limpeza-sistema
+      icone-calendario)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
 for d in seletor-de-tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
          io.github.luizfelipe.AppGridOrder local.controle.zram; do
@@ -218,6 +219,8 @@ done
 sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps "$REPO_DIR"/icons/*.svg
 sudo install -Dm644 -t /usr/share/backgrounds/seletor-de-tema "$REPO_DIR"/wallpapers/*.jpg
 sudo install -Dm644 "$E/xdg/autostart/gnome-app-grid-order.desktop" /etc/xdg/autostart/gnome-app-grid-order.desktop
+sudo install -Dm644 -t /usr/local/lib/systemd/user \
+  "$REPO_DIR"/sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}
 sudo update-desktop-database -q /usr/local/share/applications 2>/dev/null || true
 # O /etc/gamemode.ini já chama o gamemode-profile; um do usuário igual faria ele rodar duas vezes
 grep -qs gamemode-profile "$HOME/.config/gamemode.ini" && rm -f "$HOME/.config/gamemode.ini"
@@ -241,6 +244,13 @@ extensao() {
 extensao dash-to-dock@micxgx.gmail.com
 extensao kiwimenu@kemma
 extensao appindicatorsupport@rgcjonas.gmail.com
+# Minhas extensões (vêm do próprio repositório)
+for d in "$REPO_DIR"/extensoes/*/; do
+  mkdir -p "$HOME/.local/share/gnome-shell/extensions"
+  rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
+  cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
+  ok "$(basename "$d")"
+done
 
 # Configurações do usuário precisam do D-Bus da sessão (fora do GNOME, cria um temporário)
 sessao() { if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then "$@"; else dbus-run-session "$@"; fi; }
@@ -253,6 +263,9 @@ etapa "Configurações do GNOME"
 sessao dconf load / < "$REPO_DIR/gnome/configuracoes.ini"
 command -v vicinae >/dev/null && systemctl --user enable vicinae.service 2>/dev/null || true
 systemctl --user enable systemd-tmpfiles-clean.timer 2>/dev/null || true   # limpa o cache do usuário
+systemctl --user daemon-reload 2>/dev/null || true
+systemctl --user enable icone-calendario.timer 2>/dev/null || true         # data de hoje no ícone
+/usr/local/bin/icone-calendario || true
 ok "energia, touchpad, dock, pastas de apps, atalhos e extensões"
 
 # No primeiro login depois de reiniciar, abre o Seletor de Tema para escolher a aparência

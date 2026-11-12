@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Ícone do Calendário com a data de hoje (mistura do calendário da Apple e da Samsung).
+
+Grava o ícone no tema MacApps do usuário (~/.local/share/icons/MacApps), que o GNOME junta
+ao tema do sistema. Roda no login e à meia-noite pelo icone-calendario.timer (systemd do usuário).
+  icone-calendario            gera o ícone de hoje
+  icone-calendario --svg      só imprime o SVG (para testar)
+"""
+import datetime
+import os
+import sys
+
+DIAS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"]
+TEMA = os.path.expanduser("~/.local/share/icons/MacApps")
+TEMA_SISTEMA = "/usr/local/share/icons/MacApps"
+# O GNOME usa a lista de pastas do primeiro index.theme que acha (o do usuário), então ela
+# precisa ser igual à do tema do sistema; senão a lixeira e outros ícones somem
+INDEX = """[Icon Theme]
+Name=MacApps
+Comment=Ícones de apps nativos no formato do Mac; o resto vem do Adwaita
+Inherits=Adwaita,hicolor
+Directories=apps/scalable,places/scalable
+
+[apps/scalable]
+Size=128
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Applications
+
+[places/scalable]
+Size=64
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Places
+"""
+
+
+def svg(hoje):
+    dia = DIAS[hoje.weekday()]
+    # Como na Apple: dia da semana em vermelho em cima e número grande. Como na Samsung:
+    # número fino e mais leve, e domingo em vermelho (dias úteis em azul-escuro).
+    cor_num = "#e5303a" if hoje.weekday() == 6 else "#1c2333"
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="papel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1f2f6"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#1a2440" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#papel)" filter="url(#sombra)"/>
+  <text x="64" y="40" text-anchor="middle" font-family="Inter, Adwaita Sans, sans-serif"
+        font-size="17" font-weight="700" letter-spacing="1" fill="#ff3b30">{dia}</text>
+  <text x="64" y="98" text-anchor="middle" font-family="Inter, Adwaita Sans, sans-serif"
+        font-size="58" font-weight="300" fill="{cor_num}">{hoje.day}</text>
+</svg>
+"""
+
+
+def main():
+    hoje = datetime.date.today()
+    if "--svg" in sys.argv:
+        sys.stdout.write(svg(hoje))
+        return
+    pasta = os.path.join(TEMA, "apps", "scalable")
+    os.makedirs(pasta, exist_ok=True)
+    try:
+        with open(os.path.join(TEMA_SISTEMA, "index.theme")) as f:
+            index = f.read()
+    except OSError:
+        index = INDEX
+    with open(os.path.join(TEMA, "index.theme"), "w") as f:
+        f.write(index)
+    destino = os.path.join(pasta, "org.gnome.Calendar.svg")
+    temp = destino + ".tmp"
+    with open(temp, "w") as f:
+        f.write(svg(hoje))
+    os.replace(temp, destino)
+    os.utime(TEMA)  # avisa o GNOME que o tema mudou
+
+
+if __name__ == "__main__":
+    main()

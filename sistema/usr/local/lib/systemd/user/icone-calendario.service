@@ -1,0 +1,6 @@
+[Unit]
+Description=Ícone do Calendário com a data de hoje
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/icone-calendario

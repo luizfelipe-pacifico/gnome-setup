@@ -1,0 +1,7 @@
+{
+  "uuid": "selecao-limpa@gnome-setup",
+  "name": "Seleção limpa na captura de tela",
+  "description": "A captura de tela abre sem a seleção anterior: é só arrastar para selecionar de novo.",
+  "shell-version": ["47", "48", "49", "50", "51"],
+  "url": "https://github.com/luizfelipe-pacifico/gnome-setup"
+}

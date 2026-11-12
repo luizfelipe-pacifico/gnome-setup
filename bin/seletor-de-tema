@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Seletor de aparência: estilo Apple (macOS) claro/escuro ou GNOME padrão
 # Uso: seletor-de-tema [--reaplicar | --tema apple-dark|apple-light|gnome-dark|gnome-light]
+import glob
 import json
 import math
 import os
@@ -127,7 +128,30 @@ GTK4_CSS = "\n".join([
     "windowcontrols:hover > button > image { color: rgba(0, 0, 0, 0.55); }",
     "windowcontrols > button:active > image { filter: brightness(0.8); }",
     "windowcontrols:not(:hover) > button:backdrop > image { background-color: alpha(gray, 0.45); }",
+    # Arquivos: barra lateral como a do Finder (itens arredondados, seleção cinza, ícone na cor
+    # de destaque) e itens da grade com cantos arredondados
+    ".nautilus-window .navigation-sidebar > row { border-radius: 7px; margin: 1px 8px;"
+    " min-height: 30px; }",
+    ".nautilus-window .navigation-sidebar > row:selected { background-color: alpha(currentColor, 0.12);"
+    " color: inherit; }",
+    ".nautilus-window .navigation-sidebar > row:selected image { color: @accent_color; }",
+    ".nautilus-window gridview > child { border-radius: 10px; }",
 ])
+# Firefox desenha os próprios botões: o userChrome.css pinta só os três, sem mudar mais nada nele
+FIREFOX_CSS = "\n".join([
+    ".titlebar-buttonbox { gap: 8px !important; margin-inline: 10px !important; }",
+    ".titlebar-button { padding: 0 !important; background: none !important; }",
+    ".titlebar-button > .toolbarbutton-icon { width: 13px !important; height: 13px !important;"
+    " padding: 0 !important; border-radius: 50% !important; list-style-image: none !important;"
+    " box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12) !important; }",
+    ".titlebar-close > .toolbarbutton-icon { background: #ff5f57 !important; }",
+    ".titlebar-min > .toolbarbutton-icon { background: #febc2e !important; }",
+    ".titlebar-max > .toolbarbutton-icon, .titlebar-restore > .toolbarbutton-icon"
+    " { background: #28c840 !important; }",
+    ":root:-moz-window-inactive .titlebar-buttonbox:not(:hover) .toolbarbutton-icon"
+    " { background: rgba(128, 128, 128, 0.45) !important; }",
+])
+FIREFOX_PREF = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
 # Só GTK4/libadwaita: apps do GNOME e os meus. Apps GTK3 hoje são quase todos de fora (navegadores,
 # editores...) e ficam como são; o None só limpa o bloco que versões antigas puseram lá.
 USER_CSS = [(os.path.expanduser("~/.config/gtk-4.0/gtk.css"), GTK4_CSS),
@@ -196,22 +220,45 @@ def glass_installed():
     return ext_dir(EXT) is not None
 
 
-def set_user_css(on):
+def set_block(path, css):
+    """Põe (css) ou tira (None) o bloco do seletor no arquivo, sem mexer no resto dele."""
     pattern = re.compile(rf"\n*{re.escape(CSS_BEGIN)}.*?{re.escape(CSS_END)}\n*", re.S)
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        text = None
+    if text is None and not css:
+        return
+    text = pattern.sub("\n", text or "").strip("\n")
+    if css:
+        text = f"{text}\n\n{CSS_BEGIN}\n{css}\n{CSS_END}".lstrip("\n")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text + "\n" if text else "")
+
+
+def firefox_profiles():
+    for base in ("~/.mozilla/firefox", "~/.config/mozilla/firefox"):
+        for prefs in glob.glob(os.path.expanduser(f"{base}/*/prefs.js")):
+            yield os.path.dirname(prefs)
+
+
+def set_user_css(on):
     for path, css in USER_CSS:
-        try:
-            with open(path) as f:
-                text = f.read()
-        except OSError:
-            text = None
-        if text is None and not (on and css):
-            continue
-        text = pattern.sub("\n", text or "").strip("\n")
-        if on and css:
-            text = f"{text}\n\n{CSS_BEGIN}\n{css}\n{CSS_END}".lstrip("\n")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            f.write(text + "\n" if text else "")
+        set_block(path, css if on else None)
+    for profile in firefox_profiles():
+        set_block(os.path.join(profile, "chrome", "userChrome.css"), FIREFOX_CSS if on else None)
+        if on:  # o Firefox só lê o userChrome.css com esta opção ligada
+            user_js = os.path.join(profile, "user.js")
+            try:
+                with open(user_js) as f:
+                    has_pref = FIREFOX_PREF in f.read()
+            except OSError:
+                has_pref = False
+            if not has_pref:
+                with open(user_js, "a") as f:
+                    f.write(FIREFOX_PREF + "\n")
 
 
 def load_originals():

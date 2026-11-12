@@ -76,21 +76,25 @@ Google Drive / OneDrive pelo Arquivos (Contas Online).
 | Relatórios de crash | Cada programa que trava gera um relatório legível em `/var/log/crash-reports` |
 
 **Extensões**: Dash to Dock, Kiwi Menu e AppIndicator (versão certa para o seu GNOME,
-direto do extensions.gnome.org).
+direto do extensions.gnome.org) e a minha **Seleção limpa**: a captura de tela (Print Screen)
+abre sem a seleção anterior, é só arrastar para selecionar de novo.
 
 ## Estilo Mac (pelo Seletor de Tema)
 
 Escolher um tema "Apple" aplica o estilo; escolher um tema "GNOME" desfaz tudo e volta ao
 que você tinha antes. Os ajustes valem só para os apps nativos do GNOME e para os meus apps.
-Apps de fora (Firefox, Chrome, Flatpaks etc.) continuam como são.
+Apps de fora (Chrome, Flatpaks etc.) continuam como são; no Firefox só os três botões
+ganham as cores (por `userChrome.css`).
 
 - botões fechar/minimizar/maximizar coloridos e à esquerda
 - ponteiro do macOS e fonte Inter
-- ícones dos apps nativos no formato do Mac, sem copiar os da Apple: Console, Monitor,
-  Calculadora, Editor de Texto e Lixeira no estilo Mac. Arquivos e Programas com uma pasta e uma
-  sacola azuis. Web, Calendário, Música, Mapas, Configurações e os outros com o próprio ícone do
-  GNOME numa base arredondada. Bateria, rede, volume e apps de fora continuam como são
-  (~600 KB no disco).
+- ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
+  Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Arquivos (pasta com
+  casinha), Programas (sacola), Contatos, Clima, Discos, Câmera e Extensões usam desenhos
+  coloridos. Web ganha um globo próprio. Bateria, rede, volume e apps de fora continuam como são.
+- Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
+  atualizado todo dia
+- Arquivos por dentro: pastas no estilo Mac e barra lateral como a do Finder
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
 - papel de parede próprio, claro e escuro
@@ -106,6 +110,7 @@ bin/                   meus apps e scripts (vão para /usr/local/bin)
 applications/, icons/  atalhos e ícones dos apps
 wallpapers/            papéis de parede (gerar.py recria)
 gnome/configuracoes.ini   configurações do GNOME (dconf)
+extensoes/             minhas extensões do GNOME Shell
 sistema/               arquivos de sistema: desempenho, zram, discos, limpeza, crash, firewall
 pessoal/               coisas só da minha máquina (RPCS3, controle de PS4); o setup não instala
 ```

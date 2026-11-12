@@ -1,0 +1,10 @@
+[Unit]
+Description=Atualiza o ícone do Calendário no login e à meia-noite
+
+[Timer]
+OnStartupSec=5s
+OnCalendar=*-*-* 00:00:10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

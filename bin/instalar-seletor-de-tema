@@ -7,7 +7,11 @@ set -e
 cd "$(dirname "$(readlink -f "$0")")/.."
 
 echo "==> Copiando o app para o sistema"
-sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos /usr/local/bin/
+sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos \
+  bin/icone-calendario /usr/local/bin/
+sudo install -Dm 644 -t /usr/local/lib/systemd/user \
+  sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}
+systemctl --user daemon-reload && systemctl --user enable icone-calendario.timer
 sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
 sudo install -Dm 644 applications/seletor-de-tema.desktop /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm 644 -t /usr/share/backgrounds/seletor-de-tema wallpapers/claro.jpg wallpapers/escuro.jpg
@@ -21,7 +25,15 @@ rm -f "$HOME/.local/share/applications/seletor-de-tema.desktop" \
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
+echo "==> Extensões do repositório e ícone do Calendário"
+for d in extensoes/*/; do
+  rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
+  cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
+done
+/usr/local/bin/icone-calendario
+
 echo "==> Reaplicando o tema atual"
 /usr/local/bin/seletor-de-tema --reaplicar
 echo
-echo "Pronto. Apps do GNOME que estavam abertos (como o Console) pegam as cores ao serem reabertos."
+echo "Pronto. Apps que estavam abertos (Console, Firefox) pegam as cores ao serem reabertos;"
+echo "extensões novas aparecem depois de sair e entrar na sessão."

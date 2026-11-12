@@ -15,33 +15,68 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 
 # Ícones de apps nativos num tema "MacApps" pequeno (alguns KB), que herda o Adwaita:
 #  - estilo Mac (WhiteSur): Console, Monitor, Calculadora, Editor de Texto, Lixeira e outros
-#  - Arquivos e Programas: versões alternativas do WhiteSur (pasta e sacola azuis, sem Finder/App Store)
-#  - Web, Calendário, Música, Mapas, Configurações e os demais: o próprio ícone do GNOME numa base
-#    arredondada no formato do Mac (combina sem copiar os apps da Apple)
+#  - outros nativos com ícones coloridos do WhiteSur feitos para apps parecidos (sem moldura branca
+#    e sem copiar a Apple): Arquivos = pasta com casinha, Programas = sacola azul, Contatos, Clima,
+#    Discos, Câmera, Extensões; Web ganha um globo próprio no formato do Mac
+#  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
+#  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
+#  - Relógios, Mapas, Configurações, Fontes, Logs, Papers e Apostrophe: ícone do GNOME
 # Bateria, rede, volume, símbolos e apps de fora continuam como são. Só o código-fonte dos
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=4
+MAC_VERSAO=6
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
     tar xz -C "$TMP" --strip-components=1
   python3 -I - "$TMP" "$TMP/MacApps" <<'PY'
-import base64, os, shutil, sys
+import os, shutil, sys
 
 SRC, OUT = sys.argv[1:3]
 MAC = ["org.gnome.Console", "org.gnome.SystemMonitor", "utilities-system-monitor", "org.gnome.tweaks",
        "org.gnome.Loupe", "org.gnome.Showtime", "org.gnome.Characters", "org.gnome.Connections",
        "org.gnome.Decibels", "org.gnome.SimpleScan", "org.gnome.Yelp", "org.gnome.Tour",
        "org.freedesktop.MalcontentControl", "gnome-color-manager", "gufw", "htop", "timeshift",
-       "preferences-system-network", "org.gnome.Calculator", "org.gnome.TextEditor"]
-ALTERNATIVO = {"org.gnome.Nautilus": "file-manager", "org.gnome.Software": "softwarecenter"}
-BASE_MAC = ["org.gnome.Epiphany", "org.gnome.Calendar", "org.gnome.clocks", "org.gnome.Contacts",
-            "org.gnome.Maps", "org.gnome.Music", "org.gnome.Weather", "org.gnome.Settings",
-            "org.gnome.DiskUtility", "org.gnome.baobab", "org.gnome.font-viewer", "org.gnome.Logs",
-            "org.gnome.Papers", "org.gnome.Snapshot", "org.gnome.Extensions",
-            "com.mattjakeman.ExtensionManager"]
+       "preferences-system-network", "org.gnome.Calculator", "org.gnome.TextEditor", "org.gnome.Music"]
+# App -> (pasta do WhiteSur, ícone): desenhos feitos para outros apps, no estilo Mac
+TROCA = {"org.gnome.Nautilus": ("places", "user-home"),
+         "org.gnome.Software": ("alternative", "softwarecenter"),
+         "org.gnome.Contacts": ("apps", "addressbook"),
+         "org.gnome.Weather": ("apps", "indicator-weather"),
+         "org.gnome.DiskUtility": ("apps", "gnome-disks"),
+         "org.gnome.baobab": ("apps", "baobab"),
+         "org.gnome.Snapshot": ("apps", "hu.irl.cameractrls"),
+         "org.gnome.Extensions": ("apps", "extensions"),
+         "com.mattjakeman.ExtensionManager": ("apps", "extensions")}
+# Web: globo branco num quadrado azul arredondado (desenho próprio, sem a bússola do Safari)
+WEB = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ac8fa"/><stop offset="1" stop-color="#1e6fe0"/>
+    </linearGradient>
+    <radialGradient id="luz" cx="0.35" cy="0.25" r="0.75">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0b2350" flood-opacity="0.35"/>
+    </filter>
+    <clipPath id="globo"><circle cx="64" cy="64" r="36"/></clipPath>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#luz)"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" filter="url(#sombra)">
+    <circle cx="64" cy="64" r="36"/>
+    <g clip-path="url(#globo)">
+      <ellipse cx="64" cy="64" rx="15" ry="36"/>
+      <line x1="64" y1="28" x2="64" y2="100"/>
+      <line x1="28" y1="64" x2="100" y2="64"/>
+      <path d="M33 46 Q64 54 95 46"/>
+      <path d="M33 82 Q64 74 95 82"/>
+    </g>
+  </g>
+</svg>
+"""
 LIXEIRA = ["user-trash", "user-trash-full"]
 
 
@@ -56,39 +91,29 @@ def whitesur(kind, name):
     return path if os.path.isfile(path) else None
 
 
-def base_mac(icon):
-    data = base64.b64encode(open(icon, "rb").read()).decode()
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4e7ee"/>
-    </linearGradient>
-    <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#1a2440" flood-opacity="0.28"/>
-    </filter>
-  </defs>
-  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#b)" filter="url(#s)"/>
-  <rect x="8.5" y="8.5" width="111" height="111" rx="24.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
-  <image x="20" y="20" width="88" height="88" xlink:href="data:image/svg+xml;base64,{data}"/>
-</svg>
-"""
-
-
 os.makedirs(f"{OUT}/apps/scalable")
 os.makedirs(f"{OUT}/places/scalable")
 for name in MAC:
     if path := whitesur("apps", name):
         shutil.copy(path, f"{OUT}/apps/scalable/{name}.svg")
-for name, alt in ALTERNATIVO.items():
-    path = f"{SRC}/alternative/apps/scalable/{alt}.svg"
-    if os.path.isfile(path):
+for name, (pasta, icone) in TROCA.items():
+    path = (f"{SRC}/alternative/apps/scalable/{icone}.svg" if pasta == "alternative"
+            else whitesur(pasta, icone))
+    if path and os.path.isfile(path):
         shutil.copy(path, f"{OUT}/apps/scalable/{name}.svg")
-for name in BASE_MAC:
-    gnome = f"/usr/share/icons/hicolor/scalable/apps/{name}.svg"
-    if os.path.isfile(gnome):
-        with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
-            f.write(base_mac(gnome))
+with open(f"{OUT}/apps/scalable/org.gnome.Epiphany.svg", "w") as f:
+    f.write(WEB)
 for name in LIXEIRA:
+    if path := whitesur("places", name):
+        shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")
+# Pastas coloridas do Mac (os ícones simbólicos da barra lateral continuam os do GNOME)
+nomes = {f[:-4] for d in ("src", "links") for f in os.listdir(f"{SRC}/{d}/places/scalable")
+         if f.endswith(".svg")}
+for name in sorted(nomes):
+    if "symbolic" in name or not (name.startswith("folder") or
+                                  name in ("user-desktop", "user-home", "user-bookmarks",
+                                           "network-workgroup")):
+        continue
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")
 PY

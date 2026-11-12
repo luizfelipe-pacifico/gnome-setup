@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Controle do zram
+Comment=Escolha quanto da RAM vira memória comprimida
+Exec=/usr/local/bin/controle-zram
+Icon=controle-zram
+Categories=System;Settings;
+Keywords=zram;swap;memória;ram;compressão;
+StartupWMClass=local.controle.zram

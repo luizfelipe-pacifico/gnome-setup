@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+# Organiza a grade de aplicativos do GNOME Shell em ordem alfabetica ou aleatoria.
+#   gnome-app-grid-order                 aplica o modo salvo (executado a cada login)
+#   gnome-app-grid-order --set MODO      salva o modo (alphabetical|random) e aplica
+#   gnome-app-grid-order --gui           abre a janela de configuracao
+import os
+import random
+import sys
+
+import gi
+gi.require_version('Gio', '2.0')
+from gi.repository import Gio, GLib
+
+APP_ID = 'io.github.luizfelipe.AppGridOrder'
+MODES = ('alphabetical', 'random')
+DEFAULT_MODE = 'random'
+CONFIG = os.path.join(GLib.get_user_config_dir(), 'app-grid-order', 'mode')
+
+
+def load_mode():
+    try:
+        with open(CONFIG) as f:
+            mode = f.read().strip()
+    except OSError:
+        return DEFAULT_MODE
+    return mode if mode in MODES else DEFAULT_MODE
+
+
+def save_mode(mode):
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG, 'w') as f:
+        f.write(mode + '\n')
+
+
+def folder_name(folder_id):
+    path = f'/org/gnome/desktop/app-folders/folders/{folder_id}/'
+    settings = Gio.Settings.new_with_path('org.gnome.desktop.app-folders.folder', path)
+    name = settings.get_string('name')
+    if not settings.get_boolean('translate'):
+        return name or folder_id
+    # Nome traduzivel: vem de um arquivo .directory
+    for data_dir in [GLib.get_user_data_dir(), *GLib.get_system_data_dirs()]:
+        keyfile = GLib.KeyFile()
+        try:
+            keyfile.load_from_file(os.path.join(data_dir, 'desktop-directories', name),
+                                   GLib.KeyFileFlags.NONE)
+            return keyfile.get_locale_string('Desktop Entry', 'Name', None)
+        except GLib.Error:
+            continue
+    return folder_id
+
+
+def apply(mode):
+    shell = Gio.Settings.new('org.gnome.shell')
+    folders = Gio.Settings.new('org.gnome.desktop.app-folders')
+    folder_ids = folders.get_strv('folder-children')
+
+    # Apps que ja estao dentro de pastas nao aparecem soltos na grade
+    in_folders = set()
+    for folder_id in folder_ids:
+        path = f'/org/gnome/desktop/app-folders/folders/{folder_id}/'
+        in_folders.update(Gio.Settings.new_with_path(
+            'org.gnome.desktop.app-folders.folder', path).get_strv('apps'))
+
+    names = {folder_id: folder_name(folder_id) for folder_id in folder_ids}
+    for app in Gio.AppInfo.get_all():
+        app_id = app.get_id()
+        if app.should_show() and app_id and app_id not in in_folders:
+            names.setdefault(app_id, app.get_display_name())
+
+    items = list(names)
+    if mode == 'random':
+        random.shuffle(items)
+    else:
+        items.sort(key=lambda i: GLib.utf8_collate_key(GLib.utf8_casefold(names[i], -1), -1))
+
+    # Ordem atual da grade, pagina por pagina, para saber se algo mudou
+    current = [item for page in shell.get_value('app-picker-layout').unpack()
+               for item, _ in sorted(page.items(), key=lambda kv: kv[1]['position'])]
+
+    # Uma unica pagina: o GNOME redistribui o excedente nas paginas seguintes
+    page = {item: GLib.Variant('a{sv}', {'position': GLib.Variant('i', i)})
+            for i, item in enumerate(items)}
+    shell.set_value('app-picker-layout', GLib.Variant('aa{sv}', [page]))
+    Gio.Settings.sync()
+    return current != items
+
+
+def run_gui():
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Adw', '1')
+    from gi.repository import Adw, Gtk
+
+    def on_activate(app):
+        win = Adw.ApplicationWindow(application=app, title='Ordem dos Aplicativos',
+                                    default_width=460, default_height=360)
+        toasts = Adw.ToastOverlay()
+        page = Adw.PreferencesPage()
+        group = Adw.PreferencesGroup(
+            title='Grade de aplicativos',
+            description='Como organizar os aplicativos. A escolha e aplicada agora '
+                        'e mantida a cada login.')
+        page.add(group)
+
+        current = load_mode()
+        options = {
+            'alphabetical': ('Ordem alfabética', 'De A a Z pelo nome do aplicativo'),
+            'random': ('Aleatória', 'Embaralha a ordem a cada login'),
+        }
+        first = None
+        for mode, (title, subtitle) in options.items():
+            check = Gtk.CheckButton(valign=Gtk.Align.CENTER, active=mode == current)
+            if first:
+                check.set_group(first)
+            first = first or check
+            row = Adw.ActionRow(title=title, subtitle=subtitle, activatable_widget=check)
+            row.add_prefix(check)
+            group.add(row)
+
+            def on_toggled(btn, mode=mode, title=title):
+                if btn.get_active():
+                    save_mode(mode)
+                    apply(mode)
+                    refresh_row.set_title(refresh_titles[mode])
+                    toasts.add_toast(Adw.Toast(title=f'Aplicativos em ordem: {title.lower()}'))
+            check.connect('toggled', on_toggled)
+
+        # Reaplica o modo salvo: reordena de A a Z ou embaralha de novo
+        def refresh(*_):
+            mode = load_mode()
+            changed = apply(mode)
+            if mode == 'random':
+                msg = 'Aplicativos embaralhados'
+            elif changed:
+                msg = 'Ordem alfabética corrigida'
+            else:
+                msg = 'Já estava em ordem alfabética'
+            toasts.add_toast(Adw.Toast(title=msg))
+
+        refresh_titles = {'alphabetical': 'Reordenar agora', 'random': 'Embaralhar agora'}
+        refresh_group = Adw.PreferencesGroup()
+        refresh_row = Adw.ButtonRow(title=refresh_titles[current],
+                                    start_icon_name='view-refresh-symbolic')
+        refresh_row.connect('activated', refresh)
+        refresh_group.add(refresh_row)
+        page.add(refresh_group)
+
+        refresh_button = Gtk.Button(icon_name='view-refresh-symbolic',
+                                    tooltip_text='Reaplicar a ordem')
+        refresh_button.connect('clicked', refresh)
+        header = Adw.HeaderBar()
+        header.pack_start(refresh_button)
+
+        toolbar = Adw.ToolbarView(content=page)
+        toolbar.add_top_bar(header)
+        toasts.set_child(toolbar)
+        win.set_content(toasts)
+        win.present()
+
+    app = Adw.Application(application_id=APP_ID)
+    app.connect('activate', on_activate)
+    return app.run([sys.argv[0]])
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ['--gui']:
+        return run_gui()
+    if len(args) == 2 and args[0] == '--set' and args[1] in MODES:
+        save_mode(args[1])
+        apply(args[1])
+        return 0
+    if args:
+        print(__doc__ or 'uso: gnome-app-grid-order [--gui | --set alphabetical|random]',
+              file=sys.stderr)
+        return 2
+    apply(load_mode())
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

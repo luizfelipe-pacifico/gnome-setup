@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=App Grid Order
+Comment=Aplica a ordem escolhida a grade de aplicativos do GNOME
+Exec=/usr/local/bin/gnome-app-grid-order
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-Phase=Applications

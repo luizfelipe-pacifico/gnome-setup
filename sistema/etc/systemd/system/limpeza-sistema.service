@@ -1,0 +1,8 @@
+[Unit]
+Description=Limpeza semanal de pacotes, logs e Flatpak sem uso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/limpeza-sistema
+Nice=19
+IOSchedulingClass=idle

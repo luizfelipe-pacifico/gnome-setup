@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Limpeza semanal do que vira lixo (roda como root pelo limpeza-sistema.timer):
+# pacotes velhos baixados, logs antigos, runtimes Flatpak sem uso e sobras de download.
+set -u
+if command -v paccache >/dev/null; then
+  paccache -qrk1     # de cada pacote instalado, guarda só a última versão baixada (para voltar se der erro)
+  paccache -qruk0    # pacotes que já foram desinstalados: apaga todos
+fi
+rm -rf /var/cache/pacman/pkg/download-* 2>/dev/null   # downloads interrompidos
+journalctl --vacuum-time=4weeks --vacuum-size=100M -q
+command -v flatpak >/dev/null && flatpak uninstall --unused -y --noninteractive >/dev/null 2>&1
+exit 0

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Ordem dos Aplicativos
+Name[en]=App Grid Order
+Comment=Organizar a grade de aplicativos em ordem alfabética ou aleatória
+Keywords=apps;aplicativos;ordem;alfabetica;aleatoria;grade;grid;shuffle;sort;
+Exec=/usr/local/bin/gnome-app-grid-order --gui
+Icon=io.github.luizfelipe.AppGridOrder
+Categories=GNOME;GTK;Settings;DesktopSettings;
+OnlyShowIn=GNOME;
+StartupNotify=true

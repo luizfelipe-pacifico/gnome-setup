@@ -1,0 +1,9 @@
+[Unit]
+Description=Verificação periódica de crashes sem relatório
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target

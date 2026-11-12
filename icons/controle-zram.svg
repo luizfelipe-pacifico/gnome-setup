@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Controle do zram: pente de memória com setas comprimindo -->
+  <defs>
+    <linearGradient id="placa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fbf7f"/>
+      <stop offset="1" stop-color="#1e8a57"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0b2a1c" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <g filter="url(#sombra)">
+    <rect x="12" y="38" width="104" height="48" rx="6" fill="url(#placa)"/>
+    <g fill="#e8c55a">
+      <rect x="18" y="86" width="5" height="10" rx="1"/><rect x="27" y="86" width="5" height="10" rx="1"/>
+      <rect x="36" y="86" width="5" height="10" rx="1"/><rect x="45" y="86" width="5" height="10" rx="1"/>
+      <rect x="54" y="86" width="5" height="10" rx="1"/><rect x="69" y="86" width="5" height="10" rx="1"/>
+      <rect x="78" y="86" width="5" height="10" rx="1"/><rect x="87" y="86" width="5" height="10" rx="1"/>
+      <rect x="96" y="86" width="5" height="10" rx="1"/><rect x="105" y="86" width="5" height="10" rx="1"/>
+    </g>
+    <g fill="#1c2a24">
+      <rect x="20" y="46" width="18" height="24" rx="2"/><rect x="45" y="46" width="18" height="24" rx="2"/>
+      <rect x="70" y="46" width="18" height="24" rx="2"/><rect x="95" y="46" width="14" height="24" rx="2"/>
+    </g>
+  </g>
+  <!-- setas apertando para o centro -->
+  <g fill="none" stroke="#3584e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 20 L44 20 M34 10 L44 20 L34 30"/>
+    <path d="M114 20 L84 20 M94 10 L84 20 L94 30"/>
+  </g>
+  <rect x="58" y="10" width="12" height="20" rx="3" fill="#3584e4"/>
+</svg>

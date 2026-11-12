@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala ou atualiza o Seletor de Tema e tudo do estilo Apple (macOS).
+# Atualiza só o Seletor de Tema e os componentes do estilo Apple (sem rodar o setup inteiro).
 # Rode como seu usuário, sem sudo: ele pede a senha quando precisa.
 #   ~/meus-scripts/bin/instalar-seletor-de-tema
 set -e
@@ -8,29 +8,20 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 
 echo "==> Copiando o app para o sistema"
 sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos /usr/local/bin/
-sudo install -Dm 644 icons/seletor-de-tema.svg /usr/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
-sudo install -m 644 applications/seletor-de-tema.desktop /usr/share/applications/
+sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
+sudo install -Dm 644 applications/seletor-de-tema.desktop /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm 644 -t /usr/share/backgrounds/seletor-de-tema wallpapers/claro.jpg wallpapers/escuro.jpg
-sudo gtk-update-icon-cache -q /usr/share/icons/hicolor || true
-sudo update-desktop-database -q /usr/share/applications || true
-# Cópias de teste no usuário não são mais necessárias (o sistema já tem as versões novas)
+sudo update-desktop-database -q /usr/local/share/applications || true
+# Versões antigas instaladas em /usr/share e cópias de teste no home
+sudo rm -f /usr/share/applications/seletor-de-tema.desktop \
+           /usr/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
 rm -f "$HOME/.local/share/applications/seletor-de-tema.desktop" \
       "$HOME/.local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg"
 
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
-echo "==> Deixando apps Flatpak lerem as cores dos botões e o ponteiro"
-flatpak override --user --filesystem=xdg-config/gtk-4.0:ro --filesystem=xdg-config/gtk-3.0:ro \
-  --filesystem=xdg-data/icons:ro 2>/dev/null || true
-
-echo "==> Aplicando o tema"
-# Mantém claro/escuro atual e liga o estilo Apple
-if [ "$(gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'" ]; then
-  /usr/local/bin/seletor-de-tema --tema apple-dark
-else
-  /usr/local/bin/seletor-de-tema --tema apple-light
-fi
+echo "==> Reaplicando o tema atual"
+/usr/local/bin/seletor-de-tema --reaplicar
 echo
-echo "Tudo pronto. Saia e entre na sessão uma vez para o vidro e o efeito de minimizar."
-echo "Para voltar ao GNOME padrão, use o app Seletor de Tema."
+echo "Pronto. Apps do GNOME que estavam abertos (como o Console) pegam as cores ao serem reabertos."

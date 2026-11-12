@@ -1,0 +1,8 @@
+[Unit]
+Description=Gerar relatórios legíveis de crashes (coredumps)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/crash-report
+Nice=10
+IOSchedulingClass=idle

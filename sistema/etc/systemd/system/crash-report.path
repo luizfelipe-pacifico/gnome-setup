@@ -1,0 +1,8 @@
+[Unit]
+Description=Observar novos coredumps para gerar relatório
+
+[Path]
+PathChanged=/var/lib/systemd/coredump
+
+[Install]
+WantedBy=multi-user.target

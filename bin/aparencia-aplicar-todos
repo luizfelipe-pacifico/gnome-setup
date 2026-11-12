@@ -13,12 +13,7 @@ F=/etc/dconf/db/local.d/00-aparencia
   if [ "$2" = apple ]; then
     # Ponteiro, ícones e fonte só se estiverem instalados para o sistema
     [ -d /usr/share/icons/macOS/cursors ] && echo "cursor-theme='macOS'"
-    if [ -d /usr/share/icons/WhiteSur ]; then
-      ICONS=WhiteSur
-      [ "$1" = dark ] && [ -d /usr/share/icons/WhiteSur-dark ] && ICONS=WhiteSur-dark
-      [ "$1" = light ] && [ -d /usr/share/icons/WhiteSur-light ] && ICONS=WhiteSur-light
-      echo "icon-theme='$ICONS'"
-    fi
+    [ -d /usr/local/share/icons/MacApps ] && echo "icon-theme='MacApps'"
     if fc-list : family | grep -q '^Inter'; then
       echo "font-name='Inter 11'"
       echo "document-font-name='Inter 11'"

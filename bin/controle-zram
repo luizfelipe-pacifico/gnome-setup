@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Controle do zram: arraste para escolher quanto da RAM vira memória comprimida (swap rápido)."""
+import os
+import re
+import subprocess
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, GLib, Gtk  # noqa: E402
+
+CONF = "/etc/systemd/zram-generator.conf"
+HELPER = next((p for p in ["/usr/local/bin/zram-aplicar",
+                           os.path.join(os.path.dirname(os.path.realpath(__file__)), "zram-aplicar")]
+               if os.path.exists(p)), "zram-aplicar")
+ALGOS = [("zstd", "zstd — comprime mais (recomendado)"), ("lz4", "lz4 — mais rápido, comprime menos")]
+
+
+def ler(caminho, padrao=""):
+    try:
+        with open(caminho) as f:
+            return f.read().strip()
+    except OSError:
+        return padrao
+
+
+def ram_total_gb():
+    kb = int(re.search(r"MemTotal:\s+(\d+)", ler("/proc/meminfo")).group(1))
+    return kb / 1048576
+
+
+def config_atual():
+    """(porcentagem, algoritmo) do zram-generator.conf; 0% = desligado."""
+    texto = ler(CONF)
+    if "[zram0]" not in texto:
+        return 0, "zstd"
+    algo = (re.search(r"^\s*compression-algorithm\s*=\s*(\S+)", texto, re.M) or [None, "zstd"])[1]
+    tamanho = (re.search(r"^\s*zram-size\s*=\s*(.+)$", texto, re.M) or [None, "min(ram / 2, 4096)"])[1]
+    tamanho = tamanho.replace(" ", "")
+    if tamanho == "ram":
+        pct = 100
+    elif m := re.fullmatch(r"ram\*([\d.]+)", tamanho):
+        pct = round(float(m[1]) * 100)
+    elif m := re.fullmatch(r"ram/([\d.]+)", tamanho):
+        pct = round(100 / float(m[1]))
+    else:
+        pct = 50  # expressão que não sabemos ler (ex.: o padrão min(ram/2, 4096))
+    return pct, algo
+
+
+def uso_atual():
+    """(tamanho, dados guardados, espaço real usado) em GB, ou None se o zram0 não existe."""
+    if not os.path.exists("/sys/block/zram0/disksize"):
+        return None
+    tamanho = int(ler("/sys/block/zram0/disksize", "0"))
+    if not tamanho:
+        return None
+    campos = ler("/sys/block/zram0/mm_stat", "0 0 0").split()
+    return tamanho / 2**30, int(campos[0]) / 2**30, int(campos[2]) / 2**30
+
+
+def gb(v):
+    return f"{v:.1f}".replace(".", ",") + " GB"
+
+
+class Janela(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Controle do zram", default_width=460)
+        self.ram = ram_total_gb()
+        pct, algo = config_atual()
+
+        self.toast = Adw.ToastOverlay()
+        barra = Adw.ToolbarView()
+        barra.add_top_bar(Adw.HeaderBar())
+        pagina = Adw.PreferencesPage()
+
+        # Quanto usar
+        grupo = Adw.PreferencesGroup(
+            title="Memória comprimida",
+            description=f"O zram guarda na própria RAM ({gb(self.ram)}) o que iria para o disco, "
+                        "comprimido. Mais zram = menos travadas quando a memória enche.")
+        self.ativo = Adw.SwitchRow(title="Usar zram", active=pct > 0)
+        self.ativo.connect("notify::active", lambda *_: self.atualizar_rotulo())
+        grupo.add(self.ativo)
+
+        linha = Adw.PreferencesRow(activatable=False)
+        caixa = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6,
+                        margin_top=12, margin_bottom=12, margin_start=12, margin_end=12)
+        self.rotulo = Gtk.Label(xalign=0)
+        self.rotulo.add_css_class("title-3")
+        caixa.append(self.rotulo)
+        self.escala = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 150, 5)
+        self.escala.set_value(pct or 50)
+        self.escala.set_draw_value(False)
+        for marca in (25, 50, 100, 150):
+            self.escala.add_mark(marca, Gtk.PositionType.BOTTOM, f"{marca}%")
+        self.escala.connect("value-changed", lambda *_: self.atualizar_rotulo())
+        caixa.append(self.escala)
+        dica = Gtk.Label(xalign=0, wrap=True,
+                         label="Até 100% é o comum. Acima disso só vale com pouca RAM: "
+                               "como comprime ~3x, cabe mais do que o tamanho físico.")
+        dica.add_css_class("dim-label")
+        dica.add_css_class("caption")
+        caixa.append(dica)
+        linha.set_child(caixa)
+        grupo.add(linha)
+
+        self.algo = Adw.ComboRow(title="Compressão",
+                                 model=Gtk.StringList.new([d for _, d in ALGOS]))
+        self.algo.set_selected(next((i for i, (a, _) in enumerate(ALGOS) if a == algo), 0))
+        grupo.add(self.algo)
+        pagina.add(grupo)
+
+        # Uso agora
+        self.grupo_uso = Adw.PreferencesGroup(title="Agora")
+        self.linha_uso = Adw.ActionRow()
+        self.linha_uso.add_prefix(Gtk.Image(icon_name="drive-harddisk-solidstate-symbolic"))
+        self.grupo_uso.add(self.linha_uso)
+        pagina.add(self.grupo_uso)
+
+        self.botao = Gtk.Button(label="Aplicar", halign=Gtk.Align.CENTER, margin_bottom=18)
+        self.botao.add_css_class("suggested-action")
+        self.botao.add_css_class("pill")
+        self.botao.connect("clicked", self.aplicar)
+
+        conteudo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        conteudo.append(pagina)
+        conteudo.append(self.botao)
+        pagina.set_vexpand(True)
+        barra.set_content(conteudo)
+        self.toast.set_child(barra)
+        self.set_content(self.toast)
+
+        self.atualizar_rotulo()
+        self.atualizar_uso()
+        GLib.timeout_add_seconds(2, self.atualizar_uso)
+
+    def pct(self):
+        return int(self.escala.get_value()) if self.ativo.get_active() else 0
+
+    def atualizar_rotulo(self):
+        ligado = self.ativo.get_active()
+        self.escala.set_sensitive(ligado)
+        self.algo.set_sensitive(ligado)
+        p = self.pct()
+        self.rotulo.set_label(f"{p}% da RAM · {gb(self.ram * p / 100)}" if ligado else "Desligado")
+
+    def atualizar_uso(self):
+        uso = uso_atual()
+        if uso:
+            tamanho, dados, real = uso
+            self.linha_uso.set_title(f"{gb(dados)} guardados de {gb(tamanho)}")
+            taxa = f" · comprimido {dados / real:.1f}x".replace(".", ",") if real else ""
+            self.linha_uso.set_subtitle(f"Ocupando {gb(real)} de RAM de verdade{taxa}")
+        else:
+            self.linha_uso.set_title("zram desligado")
+            self.linha_uso.set_subtitle("Nenhuma memória comprimida em uso")
+        return True
+
+    def aplicar(self, _botao):
+        self.botao.set_sensitive(False)
+        algo = ALGOS[self.algo.get_selected()][0]
+        proc = subprocess.Popen(["pkexec", HELPER, str(self.pct()), algo],
+                                stderr=subprocess.PIPE, text=True)
+        GLib.child_watch_add(GLib.PRIORITY_DEFAULT, proc.pid, self.aplicado, proc)
+
+    def aplicado(self, _pid, status, proc):
+        self.botao.set_sensitive(True)
+        erro = proc.stderr.read().strip()
+        ok = os.waitstatus_to_exitcode(status) == 0
+        self.toast.add_toast(Adw.Toast(
+            title="zram atualizado" if ok else f"Não aplicado{': ' + erro if erro else ''}",
+            timeout=4))
+        self.atualizar_uso()
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="local.controle.zram")
+        self.connect("activate", lambda app: (Gtk.Window.set_default_icon_name("controle-zram"),
+                                              Janela(app).present()))
+
+
+if __name__ == "__main__":
+    App().run()

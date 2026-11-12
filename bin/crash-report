@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Gera um relatório legível em /var/log/crash-reports para cada crash (coredump)
+# registrado pelo systemd-coredump, de qualquer programa e qualquer usuário.
+# Disparado por crash-report.path (novo coredump) e crash-report.timer (garantia).
+
+set -u
+DIR=/var/log/crash-reports
+STATE=/var/lib/crash-report/last
+MAX_DAYS=30
+
+mkdir -p "$DIR" "$(dirname "$STATE")"
+last=$(cat "$STATE" 2>/dev/null || echo 0)   # microssegundos desde epoch
+
+coredumpctl list --json=short --no-pager --since "@$((last / 1000000))" 2>/dev/null |
+python3 -I -c '
+import json, sys
+last = int(sys.argv[1])
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    data = []
+for c in data:
+    if c["time"] > last:
+        print(c["time"], c["pid"], c["uid"], c["exe"], sep="\t")
+' "$last" |
+while IFS=$'\t' read -r t pid uid exe; do
+    name=$(basename "$exe" | tr -c 'A-Za-z0-9._-' '_' | cut -c1-40)
+    user=$(id -nu "$uid" 2>/dev/null || echo "$uid")
+    out="$DIR/$(date -d "@$((t / 1000000))" +%Y-%m-%d_%H-%M-%S)_${user}_${name}_${pid}.txt"
+    {
+        echo "Programa: $exe"
+        echo "Usuário:  $user"
+        echo "PID:      $pid"
+        echo "Data:     $(date -d "@$((t / 1000000))" '+%Y-%m-%d %H:%M:%S')"
+        echo
+        echo "== coredump =="
+        coredumpctl info --no-pager "COREDUMP_TIMESTAMP=$t" 2>/dev/null ||
+            coredumpctl info --no-pager -1 "$pid" 2>/dev/null
+        echo
+        echo "== últimas mensagens do processo no journal =="
+        journalctl --no-pager -o short-precise _PID="$pid" -n 150 2>/dev/null
+    } > "$out"
+    chgrp wheel "$out" 2>/dev/null; chmod 0640 "$out"
+    echo "$t" > "$STATE"
+done
+
+find "$DIR" -type f -name '*.txt' -mtime +$((MAX_DAYS - 1)) -delete
+exit 0

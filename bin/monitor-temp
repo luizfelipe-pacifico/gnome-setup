@@ -41,12 +41,20 @@ def hwmon(nome):
     return None
 
 
+# Sensor da CPU por fabricante (Intel, AMD, ARM/Snapdragon), com o rótulo preferido
+SENSORES_CPU = [("coretemp", "Package id 0"), ("k10temp", "Tctl"), ("zenpower", "Tdie"),
+                ("cpu_thermal", None), ("qcom_tsens", None), ("acpitz", None)]
+
+
 class Sensores:
     def __init__(self):
-        self.coretemp = hwmon("coretemp")
-        self.asus = hwmon("asus")
-        self.acpi_fan = hwmon("acpi_fan")
+        self.cpu = next(((b, r) for n, r in SENSORES_CPU if (b := hwmon(n))), (None, None))
+        # Qualquer ventoinha que o kernel expõe (ASUS, Dell, ThinkPad, ACPI, placa-mãe...)
+        # (a do fabricante vem antes da genérica acpi_fan, como era no notebook ASUS)
+        self.fans_in = sorted(glob.glob("/sys/class/hwmon/hwmon*/fan*_input"),
+                              key=lambda p: ler(f"{os.path.dirname(p)}/name") == "acpi_fan")
         self.nvme = hwmon("nvme")
+        self.bat = next(iter(sorted(glob.glob("/sys/class/power_supply/BAT*"))), None)
         self.cpu_ant = None
 
     def _temp(self, base, rotulo=None):
@@ -60,17 +68,19 @@ class Sensores:
         return int(v) / 1000 if v else None
 
     def cpu_temp(self):
-        return self._temp(self.coretemp, "Package id 0")
+        base, rotulo = self.cpu
+        if base:
+            return self._temp(base, rotulo)
+        # Sem hwmon conhecido: zona térmica mais quente
+        zonas = [int(v) / 1000 for z in glob.glob("/sys/class/thermal/thermal_zone*/temp")
+                 if (v := ler(z)) and v.lstrip("-").isdigit()]
+        return max(zonas) if zonas else None
 
     def nvme_temp(self):
         return self._temp(self.nvme, "Composite")
 
     def fan(self):
-        for base in (self.asus, self.acpi_fan):
-            v = ler(f"{base}/fan1_input") if base else None
-            if v:
-                return int(v)
-        return None
+        return next((int(v) for p in self.fans_in if (v := ler(p)) and v.isdigit() and int(v)), None)
 
     def cpu_uso(self):
         campos = list(map(int, ler("/proc/stat").splitlines()[0].split()[1:]))
@@ -94,8 +104,8 @@ class Sensores:
         return usado, total
 
     def bateria(self):
-        b = "/sys/class/power_supply/BAT1"
-        cap = ler(f"{b}/capacity")
+        b = self.bat
+        cap = ler(f"{b}/capacity") if b else None
         if cap is None:
             return None
         status = {"Charging": "carregando", "Discharging": "na bateria", "Full": "cheia",
@@ -205,7 +215,8 @@ class Janela(Adw.ApplicationWindow):
         titulo = Gtk.Label(label=modelo)
         titulo.add_css_class("title-3")
         cpu = next((l.split(":", 1)[1].strip() for l in ler("/proc/cpuinfo", "").splitlines()
-                    if l.startswith("model name")), "")
+                    if l.startswith("model name")), "") or ler(
+            "/sys/firmware/devicetree/base/model", "").strip("\x00")  # ARM não tem "model name"
         sub = Gtk.Label(label=cpu.replace("(R)", "").replace("(TM)", ""))
         sub.add_css_class("dim-label")
         caixa.append(titulo)

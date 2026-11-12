@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d3846"/>
+      <stop offset="1" stop-color="#241f31"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="12" width="112" height="108" rx="20" fill="#1e1a26"/>
+  <rect x="8" y="8" width="112" height="106" rx="20" fill="url(#bg)"/>
+  <g>
+    <rect x="22" y="22" width="22" height="22" rx="6" fill="#e01b24"/>
+    <rect x="53" y="22" width="22" height="22" rx="6" fill="#ff7800"/>
+    <rect x="84" y="22" width="22" height="22" rx="6" fill="#f6d32d"/>
+    <rect x="22" y="50" width="22" height="22" rx="6" fill="#33d17a"/>
+    <rect x="53" y="50" width="22" height="22" rx="6" fill="#2ec27e"/>
+    <rect x="84" y="50" width="22" height="22" rx="6" fill="#3584e4"/>
+    <rect x="22" y="78" width="22" height="22" rx="6" fill="#1c71d8"/>
+    <rect x="53" y="78" width="22" height="22" rx="6" fill="#9141ac"/>
+    <rect x="84" y="78" width="22" height="22" rx="6" fill="#c061cb"/>
+  </g>
+  <circle cx="100" cy="100" r="20" fill="#ffffff"/>
+  <path d="M100 86 l8 9 h-5 v14 h-6 v-14 h-5 z" fill="#241f31"/>
+</svg>

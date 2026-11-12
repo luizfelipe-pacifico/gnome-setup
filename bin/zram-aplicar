@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Grava o tamanho do zram e reinicia o dispositivo. Roda como root (pkexec, pelo controle-zram).
+# Uso: zram-aplicar <porcentagem da RAM, 0 = desligar> <zstd|lz4>
+set -e
+[[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -le 150 ] || { echo "porcentagem inválida" >&2; exit 1; }
+case "$2" in zstd|lz4) ;; *) echo "compressão inválida" >&2; exit 1 ;; esac
+
+CONF=/etc/systemd/zram-generator.conf
+UNIT=systemd-zram-setup@zram0.service
+if [ "$1" -eq 0 ]; then
+  echo "# zram desligado pelo Controle do zram" > "$CONF"
+  systemctl stop "$UNIT" 2>/dev/null || true
+else
+  FATOR=$(awk "BEGIN { printf \"%.2f\", $1 / 100 }")
+  cat > "$CONF" <<EOF
+# Gerado pelo Controle do zram ($1% da RAM)
+[zram0]
+zram-size = ram * $FATOR
+compression-algorithm = $2
+swap-priority = 100
+EOF
+  systemctl daemon-reload
+  # Recriar o zram tira da memória comprimida o que está nele; se faltar RAM livre, falha sem perder nada
+  systemctl restart "$UNIT" || { echo "falta RAM livre para esvaziar o zram agora; vale no próximo boot" >&2; exit 1; }
+fi

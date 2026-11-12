@@ -13,7 +13,7 @@ Num Arch Linux com GNOME recém-instalado, abra o Terminal e rode **como seu usu
 (sem `sudo`; a senha é pedida uma vez):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/__REPO__/main/instalar.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/instalar.sh)
 ```
 
 No final aparece uma janela para **reiniciar**. No primeiro login depois disso, o

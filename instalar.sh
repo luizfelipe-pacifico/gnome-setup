@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Comando de uma linha para um GNOME recém-instalado (Arch Linux):
-#   bash <(curl -fsSL https://raw.githubusercontent.com/__REPO__/main/instalar.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/instalar.sh)
 # Baixa (ou atualiza) este repositório e roda o setup.sh.
 set -euo pipefail
-REPO="https://github.com/__REPO__.git"
+REPO="https://github.com/luizfelipe-pacifico/gnome-setup.git"
 DEST="$HOME/.local/share/gnome-setup"
 
 [ "$EUID" -eq 0 ] && { echo "Rode como seu usuário, sem sudo."; exit 1; }

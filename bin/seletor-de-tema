@@ -1,0 +1,569 @@
+#!/usr/bin/env python3
+# Seletor de aparência: estilo Apple (macOS) claro/escuro ou GNOME padrão
+# Uso: seletor-de-tema [--reaplicar | --tema apple-dark|apple-light|gnome-dark|gnome-light]
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+gi.require_version("Gdk", "4.0")
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+
+EXT = "blur-my-shell@aunetx"
+LAMP_EXT = "compiz-alike-magic-lamp-effect@hermes83.github.com"
+APPLE_EXTS = [EXT, LAMP_EXT]  # ligadas só no estilo Apple
+BLUR_SCHEMA = "org.gnome.shell.extensions.blur-my-shell"
+BLUR_SCHEMA_DIR = f"/usr/share/gnome-shell/extensions/{EXT}/schemas"
+SCRIPT = next(p for p in ["/usr/local/bin/apply-macos-look.sh",
+                          os.path.expanduser("~/.local/bin/apply-macos-look.sh")]
+              if os.path.exists(p))
+SYSTEM_HELPER = "/usr/local/bin/aparencia-aplicar-todos"
+CONFIG_DIR = os.path.expanduser("~/.config/seletor-de-tema")
+STATUS_FILE = os.path.join(CONFIG_DIR, "status")
+ORIGINALS_FILE = os.path.join(CONFIG_DIR, "originais.json")
+APPLE_BUTTONS = "close,minimize,maximize:"
+CURSOR = "macOS"
+ICONS = "WhiteSur"
+FONT = "Inter"
+WALLPAPER_DIR = "/usr/share/backgrounds/seletor-de-tema"
+EXT_DIRS = [os.path.expanduser("~/.local/share/gnome-shell/extensions"),
+            "/usr/share/gnome-shell/extensions"]
+
+
+def icon_dir(name):
+    return next((d for d in (os.path.expanduser(f"~/.local/share/icons/{name}"),
+                             f"/usr/share/icons/{name}") if os.path.isdir(d)), None)
+
+
+def ext_dir(uuid):
+    return next((f"{d}/{uuid}" for d in EXT_DIRS if os.path.isdir(f"{d}/{uuid}")), None)
+
+
+def icons_for(dark):
+    variant = f"{ICONS}-{'dark' if dark else 'light'}"
+    return variant if icon_dir(variant) else ICONS
+
+
+def font_installed():
+    return FONT in run("fc-list", ":", "family")
+
+
+def vicinae_path():
+    """Caminho do atalho personalizado que abre o Vicinae (o "Spotlight")."""
+    media = settings("org.gnome.settings-daemon.plugins.media-keys")
+    for path in media.get_strv("custom-keybindings") if media else []:
+        s = settings("org.gnome.settings-daemon.plugins.media-keys.custom-keybinding", path=path)
+        if s and "vicinae" in s.get_string("command"):
+            return path
+    return None
+
+
+# Ajustes do estilo Apple. Cada um: (schema, chave, tipo, valor(escuro), extra).
+# O valor de antes fica em originais.json e volta quando se escolhe um tema GNOME.
+# extra: "ext" = schema de extensão, "path" = função que acha o caminho, "need" = só se instalado
+APPLE_SETTINGS = [
+    # Janelas: botões à esquerda (as cores vêm do CSS abaixo) e novas janelas no centro
+    ("org.gnome.desktop.wm.preferences", "button-layout", "s", lambda d: APPLE_BUTTONS, {}),
+    ("org.gnome.mutter", "center-new-windows", "b", lambda d: True, {}),
+    # Ponteiro, ícones e fonte
+    ("org.gnome.desktop.interface", "cursor-theme", "s", lambda d: CURSOR,
+     {"need": lambda: icon_dir(CURSOR)}),
+    ("org.gnome.desktop.interface", "icon-theme", "s", icons_for, {"need": lambda: icon_dir(ICONS)}),
+    ("org.gnome.desktop.interface", "font-name", "s", lambda d: f"{FONT} 11", {"need": font_installed}),
+    ("org.gnome.desktop.interface", "document-font-name", "s", lambda d: f"{FONT} 11",
+     {"need": font_installed}),
+    ("org.gnome.desktop.wm.preferences", "titlebar-font", "s", lambda d: f"{FONT} Semi-Bold 11",
+     {"need": font_installed}),
+    # Barra superior: dia da semana no relógio e sem canto ativo (o Mac não tem por padrão)
+    ("org.gnome.desktop.interface", "clock-show-weekday", "b", lambda d: True, {}),
+    ("org.gnome.desktop.interface", "clock-show-date", "b", lambda d: True, {}),
+    ("org.gnome.desktop.interface", "enable-hot-corners", "b", lambda d: False, {}),
+    ("org.gnome.desktop.interface", "accent-color", "s", lambda d: "blue", {}),
+    ("org.gnome.shell.extensions.kiwimenu", "macos-accelerators", "b", lambda d: True,
+     {"ext": "kiwimenu@kemma"}),
+    # Papel de parede claro e escuro
+    ("org.gnome.desktop.background", "picture-uri", "s",
+     lambda d: f"file://{WALLPAPER_DIR}/claro.jpg", {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
+    ("org.gnome.desktop.background", "picture-uri-dark", "s",
+     lambda d: f"file://{WALLPAPER_DIR}/escuro.jpg", {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
+    ("org.gnome.desktop.screensaver", "picture-uri", "s",
+     lambda d: f"file://{WALLPAPER_DIR}/{'escuro' if d else 'claro'}.jpg",
+     {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
+    # Dock: embaixo, centralizada, pontinho nos apps abertos, "Launchpad" à esquerda
+    *(("org.gnome.shell.extensions.dash-to-dock", key, typ, (lambda v: lambda d: v)(val),
+       {"ext": "dash-to-dock@micxgx.gmail.com"})
+      for key, typ, val in [("dock-position", "s", "BOTTOM"), ("extend-height", "b", False),
+                            ("always-center-icons", "b", True), ("show-apps-at-top", "b", True),
+                            ("running-indicator-style", "s", "DOT"), ("show-trash", "b", True),
+                            ("show-mounts", "b", False), ("dash-max-icon-size", "i", 48),
+                            ("click-action", "s", "focus-or-previews")]),
+    # Busca estilo Spotlight: Super+Espaço abre o Vicinae (sai da troca de teclado)
+    ("org.gnome.desktop.wm.keybindings", "switch-input-source", "as", lambda d: ["XF86Keyboard"],
+     {"need": vicinae_path}),
+    ("org.gnome.settings-daemon.plugins.media-keys.custom-keybinding", "binding", "s",
+     lambda d: "<Super>space", {"path": vicinae_path}),
+]
+
+# Botões de janela coloridos (semáforo), entre marcadores para não mexer no resto do gtk.css
+CSS_BEGIN, CSS_END = "/* seletor-de-tema: início */", "/* seletor-de-tema: fim */"
+TRAFFIC_LIGHTS = {"close": "#ff5f57", "minimize": "#febc2e", "maximize": "#28c840"}
+GTK4_CSS = "\n".join([
+    "windowcontrols { border-spacing: 8px; }",
+    "windowcontrols > button { min-width: 14px; min-height: 14px; padding: 0; margin: 0;"
+    " background: none; box-shadow: none; }",
+    "windowcontrols > button > image { padding: 1px; -gtk-icon-size: 12px; border-radius: 100%;"
+    " color: transparent; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }",
+    *(f"windowcontrols > button.{b} > image {{ background-color: {c}; }}"
+      for b, c in TRAFFIC_LIGHTS.items()),
+    "windowcontrols:hover > button > image { color: rgba(0, 0, 0, 0.55); }",
+    "windowcontrols > button:active > image { filter: brightness(0.8); }",
+    "windowcontrols:not(:hover) > button:backdrop > image { background-color: alpha(gray, 0.45); }",
+])
+GTK3_CSS = "\n".join([
+    "button.titlebutton { min-width: 14px; min-height: 14px; padding: 0; margin: 0 4px;"
+    " border: none; border-radius: 100%; background-image: none; color: transparent;"
+    " -gtk-icon-shadow: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }",
+    *(f"button.titlebutton.{b} {{ background-color: {c}; }}" for b, c in TRAFFIC_LIGHTS.items()),
+    "button.titlebutton:hover { color: rgba(0, 0, 0, 0.55); }",
+    "button.titlebutton:active { background-image: image(alpha(black, 0.2)); }",
+    "button.titlebutton:backdrop:not(:hover) { background-color: alpha(gray, 0.45); }",
+    # Cantos arredondados também nos apps GTK3 antigos
+    "decoration, window.csd, .titlebar { border-radius: 12px 12px 0 0; }",
+    "window.csd decoration { border-radius: 12px; }",
+])
+USER_CSS = [(os.path.expanduser("~/.config/gtk-4.0/gtk.css"), GTK4_CSS),
+            (os.path.expanduser("~/.config/gtk-3.0/gtk.css"), GTK3_CSS)]
+
+# O que o apply-macos-look.sh instala (nome, verificação)
+COMPONENTS = [
+    ("vidro", lambda: os.path.isdir(BLUR_SCHEMA_DIR)),
+    ("ponteiro", lambda: icon_dir(CURSOR)),
+    ("ícones", lambda: icon_dir(ICONS)),
+    ("fonte Inter", font_installed),
+    ("efeito de minimizar", lambda: ext_dir(LAMP_EXT)),
+]
+
+
+def missing_components():
+    return [name for name, ok in COMPONENTS if not ok()]
+
+THEMES = {
+    "apple-dark": {"title": "Apple escuro", "dark": True, "apple": True},
+    "apple-light": {"title": "Apple claro", "dark": False, "apple": True},
+    "gnome-dark": {"title": "GNOME escuro", "dark": True, "apple": False},
+    "gnome-light": {"title": "GNOME claro", "dark": False, "apple": False},
+}
+
+GLASS_PARTS = [
+    ("panel", "Barra superior", "view-continuous-symbolic"),
+    ("dash-to-dock", "Dock", "view-app-grid-symbolic"),
+    ("overview", "Tela de apps", "view-grid-symbolic"),
+    ("appfolder", "Pastas de apps", "folder-symbolic"),
+    ("lockscreen", "Tela de bloqueio", "system-lock-screen-symbolic"),
+]
+
+
+def run(*cmd):
+    return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+
+
+def settings(schema, path=None, ext=None):
+    """Gio.Settings ou None se o schema não existir (extensão não instalada etc.)."""
+    source = Gio.SettingsSchemaSource.get_default()
+    if ext:
+        d = ext_dir(ext)
+        if not d or not os.path.isdir(f"{d}/schemas"):
+            return None
+        source = Gio.SettingsSchemaSource.new_from_directory(f"{d}/schemas", source, False)
+    schema_obj = source.lookup(schema, True)
+    if not schema_obj or (schema_obj.get_path() is None and not path):
+        return None
+    return Gio.Settings.new_full(schema_obj, None, path)
+
+
+def blur_get(part):
+    s = settings(f"{BLUR_SCHEMA}.{part}", ext=EXT)
+    return bool(s and s.get_boolean("blur"))
+
+
+def blur_set(part, on):
+    s = settings(f"{BLUR_SCHEMA}.{part}", ext=EXT)
+    if s:
+        s.set_boolean("blur", on)
+
+
+def glass_installed():
+    return os.path.isdir(BLUR_SCHEMA_DIR)
+
+
+def set_user_css(on):
+    pattern = re.compile(rf"\n*{re.escape(CSS_BEGIN)}.*?{re.escape(CSS_END)}\n*", re.S)
+    for path, css in USER_CSS:
+        try:
+            with open(path) as f:
+                text = f.read()
+        except OSError:
+            text = None
+        if text is None and not on:
+            continue
+        text = pattern.sub("\n", text or "").strip("\n")
+        if on:
+            text = f"{text}\n\n{CSS_BEGIN}\n{css}\n{CSS_END}".lstrip("\n")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(text + "\n" if text else "")
+
+
+def load_originals():
+    try:
+        with open(ORIGINALS_FILE) as f:
+            originals = json.load(f)
+    except (OSError, ValueError):
+        originals = {}
+    # Arquivos da versão anterior, que guardavam só botões e ponteiro
+    for name, key in (("botoes-originais", "org.gnome.desktop.wm.preferences:button-layout"),
+                      ("ponteiro-original", "org.gnome.desktop.interface:cursor-theme")):
+        legacy = os.path.join(CONFIG_DIR, name)
+        if os.path.exists(legacy):
+            with open(legacy) as f:
+                originals.setdefault(key, GLib.Variant("s", f.read().strip()).print_(False))
+            os.remove(legacy)
+    return originals
+
+
+def apply_settings(t):
+    originals = load_originals()
+    for schema, key, typ, value, extra in APPLE_SETTINGS:
+        if "need" in extra and not extra["need"]():
+            continue
+        path = extra["path"]() if "path" in extra else None
+        if "path" in extra and not path:
+            continue
+        s = settings(schema, path=path, ext=extra.get("ext"))
+        if not s:
+            continue
+        ident = f"{schema}{path or ''}:{key}"
+        current = s.get_value(key)
+        if t["apple"]:
+            originals.setdefault(ident, current.print_(False))  # só na 1ª vez: é o valor do usuário
+            s.set_value(key, GLib.Variant(typ, value(t["dark"])))
+        elif ident in originals:
+            saved = originals.pop(ident)
+            # Só volta se ainda estiver como o Apple deixou (respeita o que o usuário mudou depois)
+            if any(current.equal(GLib.Variant(typ, value(d))) for d in (True, False)):
+                s.set_value(key, GLib.Variant.parse(GLib.VariantType(typ), saved))
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(ORIGINALS_FILE, "w") as f:
+        json.dump(originals, f, indent=2, ensure_ascii=False)
+
+
+def set_extensions(on):
+    shell = settings("org.gnome.shell")
+    enabled = shell.get_strv("enabled-extensions")
+    disabled = shell.get_strv("disabled-extensions")
+    for uuid in APPLE_EXTS:
+        if not ext_dir(uuid):
+            continue
+        if on:
+            enabled = enabled + [uuid] if uuid not in enabled else enabled
+            disabled = [u for u in disabled if u != uuid]
+        else:
+            enabled = [u for u in enabled if u != uuid]
+    shell.set_strv("enabled-extensions", enabled)
+    shell.set_strv("disabled-extensions", disabled)
+
+
+def script_status():
+    try:
+        with open(STATUS_FILE) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def apply_theme(t):
+    # Modo claro/escuro sempre; no estilo Apple também botões, ponteiro, ícones, fonte,
+    # dock, barra, papel de parede, atalho de busca e extensões (o GNOME desfaz tudo)
+    settings("org.gnome.desktop.interface").set_string(
+        "color-scheme", "prefer-dark" if t["dark"] else "default")
+    apply_settings(t)
+    set_user_css(t["apple"])
+    set_extensions(t["apple"])
+    Gio.Settings.sync()
+
+
+def current_theme():
+    dark = settings("org.gnome.desktop.interface").get_string("color-scheme") == "prefer-dark"
+    apple = settings("org.gnome.desktop.wm.preferences").get_string("button-layout") == APPLE_BUTTONS
+    return f"{'apple' if apple else 'gnome'}-{'dark' if dark else 'light'}"
+
+
+def rounded_rect(cr, x, y, w, h, r):
+    cr.new_sub_path()
+    cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+    cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+    cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+    cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+    cr.close_path()
+
+
+def draw_preview(_area, cr, w, h, t):
+    """Miniatura da área de trabalho: fundo, barra, janela e dock."""
+    dark, apple = t["dark"], t["apple"]
+    rounded_rect(cr, 0, 0, w, h, 12)
+    cr.clip()
+
+    # Fundo em degradê
+    if dark:
+        top, bottom = (0.16, 0.13, 0.30), (0.05, 0.05, 0.10)
+    else:
+        top, bottom = (0.62, 0.78, 0.98), (0.95, 0.80, 0.88)
+    steps = 24
+    for i in range(steps):
+        k = i / (steps - 1)
+        cr.set_source_rgb(*(a + (b - a) * k for a, b in zip(top, bottom)))
+        cr.rectangle(0, h * i / steps, w, h / steps + 1)
+        cr.fill()
+
+    glass = 0.28 if apple else 0.92
+    fg = (1, 1, 1) if dark else (0, 0, 0)
+    surface = (0.17, 0.17, 0.19) if dark else (0.98, 0.98, 0.99)
+
+    # Barra superior
+    cr.set_source_rgba(*surface, glass if apple else 1)
+    cr.rectangle(0, 0, w, 12)
+    cr.fill()
+    cr.set_source_rgba(*fg, 0.7)
+    rounded_rect(cr, w / 2 - 14, 4, 28, 4, 2)
+    cr.fill()
+
+    # Janela
+    wx, wy, ww, wh = w * 0.14, h * 0.22, w * 0.72, h * 0.48
+    cr.set_source_rgba(0, 0, 0, 0.18)
+    rounded_rect(cr, wx + 2, wy + 3, ww, wh, 8)
+    cr.fill()
+    cr.set_source_rgb(*surface)
+    rounded_rect(cr, wx, wy, ww, wh, 8)
+    cr.fill()
+    cr.set_source_rgba(*fg, 0.12)
+    for i in range(3):
+        rounded_rect(cr, wx + 12, wy + 22 + i * 10, ww * (0.7 - i * 0.15), 4, 2)
+        cr.fill()
+
+    # Botões da janela: semáforo à esquerda (Apple) ou cinza à direita (GNOME)
+    if apple:
+        for i, color in enumerate([(1, 0.37, 0.34), (1, 0.74, 0.18), (0.16, 0.79, 0.25)]):
+            cr.set_source_rgb(*color)
+            cr.arc(wx + 10 + i * 9, wy + 9, 3, 0, 2 * math.pi)
+            cr.fill()
+    else:
+        cr.set_source_rgba(*fg, 0.35)
+        for i in range(3):
+            cr.arc(wx + ww - 10 - i * 9, wy + 9, 3, 0, 2 * math.pi)
+            cr.fill()
+
+    # Dock
+    dw, dh = w * 0.5, 18
+    dx, dy = (w - dw) / 2, h - dh - 6
+    cr.set_source_rgba(*surface, glass)
+    rounded_rect(cr, dx, dy, dw, dh, 7)
+    cr.fill()
+    if apple:
+        cr.set_source_rgba(1, 1, 1, 0.35)
+        cr.set_line_width(1)
+        rounded_rect(cr, dx + 0.5, dy + 0.5, dw - 1, dh - 1, 7)
+        cr.stroke()
+    icons = [(0.30, 0.56, 1), (0.98, 0.42, 0.33), (0.35, 0.80, 0.45),
+             (0.98, 0.76, 0.25), (0.65, 0.45, 0.95)]
+    size = 10
+    gap = (dw - len(icons) * size) / (len(icons) + 1)
+    for i, color in enumerate(icons):
+        cr.set_source_rgb(*color)
+        rounded_rect(cr, dx + gap + i * (size + gap), dy + 4, size, size, 3)
+        cr.fill()
+
+
+CSS = """
+.theme-card { padding: 8px; border-radius: 18px; border: 2px solid transparent; }
+.theme-card:hover { background: alpha(currentColor, 0.06); }
+.theme-card.selected { border-color: @accent_bg_color; background: alpha(@accent_bg_color, 0.10); }
+.theme-card-title { font-weight: 600; }
+"""
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="local.seletor.tema")
+        self.connect("activate", self.on_activate)
+        self.cards = {}
+        self.syncing = False
+        self.last_status = None
+
+    def on_activate(self, app):
+        Gtk.Window.set_default_icon_name("seletor-de-tema")
+        provider = Gtk.CssProvider()
+        provider.load_from_string(CSS)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+        win = Adw.ApplicationWindow(application=app, title="Aparência",
+                                    default_width=560, default_height=680)
+        self.toast = Adw.ToastOverlay()
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        page = Adw.PreferencesPage()
+
+        # Cartões com miniaturas dos temas
+        themes_group = Adw.PreferencesGroup(title="Tema",
+                                            description="Clique em uma miniatura para aplicar.")
+        grid = Gtk.FlowBox(max_children_per_line=2, min_children_per_line=2,
+                           selection_mode=Gtk.SelectionMode.NONE,
+                           column_spacing=12, row_spacing=12, homogeneous=True)
+        active = current_theme()
+        for key, t in THEMES.items():
+            grid.append(self.make_card(key, t, key == active))
+        themes_group.add(grid)
+        page.add(themes_group)
+
+        # Status da instalação (conversa com o apply-macos-look.sh pelo arquivo de status)
+        parts_group = Adw.PreferencesGroup(
+            title="Componentes do estilo Apple",
+            description="Botões coloridos, ponteiro, ícones, fonte, dock, papel de parede, "
+                        "Super+Espaço para buscar, vidro e efeito de minimizar.")
+        self.status_row = Adw.ActionRow()
+        self.status_icon = Gtk.Image(pixel_size=32)
+        self.status_row.add_prefix(self.status_icon)
+        self.install_btn = Gtk.Button(label="Instalar", valign=Gtk.Align.CENTER)
+        self.install_btn.add_css_class("suggested-action")
+        self.install_btn.add_css_class("pill")
+        self.install_btn.connect("clicked", self.on_install)
+        self.status_row.add_suffix(self.install_btn)
+        parts_group.add(self.status_row)
+        page.add(parts_group)
+
+        glass_group = Adw.PreferencesGroup(title="Efeito de vidro")
+
+        # Onde aplicar o vidro
+        self.part_rows = []
+        for part, label, icon in GLASS_PARTS:
+            row = Adw.SwitchRow(title=label)
+            row.add_prefix(Gtk.Image(icon_name=icon))
+            row.connect("notify::active", self.on_part_toggled, part)
+            glass_group.add(row)
+            self.part_rows.append((part, row))
+        page.add(glass_group)
+
+        # Padrão para todos os usuários (pede senha de administrador)
+        system_group = Adw.PreferencesGroup(title="Todos os usuários")
+        self.all_users_btn = Gtk.Button(label="Aplicar", valign=Gtk.Align.CENTER)
+        self.all_users_btn.add_css_class("pill")
+        self.all_users_btn.connect("clicked", self.on_apply_all_users)
+        row = Adw.ActionRow(title="Usar esta aparência para todos",
+                            subtitle="Tema, botões, ponteiro, ícones, fonte, papel de parede e vidro "
+                                     "atuais viram o padrão do sistema")
+        row.add_prefix(Gtk.Image(icon_name="system-users-symbolic"))
+        row.add_suffix(self.all_users_btn)
+        row.set_sensitive(os.path.exists(SYSTEM_HELPER))
+        system_group.add(row)
+        page.add(system_group)
+
+        toolbar.set_content(page)
+        self.toast.set_child(toolbar)
+        win.set_content(self.toast)
+        self.refresh_status()
+        GLib.timeout_add_seconds(2, self.refresh_status)
+        win.present()
+
+    def make_card(self, key, t, selected):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.add_css_class("theme-card")
+        if selected:
+            box.add_css_class("selected")
+        area = Gtk.DrawingArea(content_width=220, content_height=130)
+        area.set_draw_func(draw_preview, t)
+        box.append(area)
+        label = Gtk.Label(label=t["title"])
+        label.add_css_class("theme-card-title")
+        box.append(label)
+        click = Gtk.GestureClick()
+        click.connect("released", lambda *_: self.on_card_clicked(key))
+        box.add_controller(click)
+        box.set_cursor_from_name("pointer")
+        self.cards[key] = box
+        return box
+
+    def on_card_clicked(self, key):
+        for k, card in self.cards.items():
+            (card.add_css_class if k == key else card.remove_css_class)("selected")
+        t = THEMES[key]
+        apply_theme(t)
+        msg = f"{t['title']} aplicado"
+        if t["apple"] and missing_components():
+            msg += ". Instale os componentes abaixo"
+        self.toast.add_toast(Adw.Toast(title=msg))
+
+    def on_install(self, _btn):
+        cmd = f"'{SCRIPT}'; echo; read -p 'Pressione Enter para fechar'"
+        subprocess.Popen(["kgx", "--", "bash", "-c", cmd])
+
+    def on_apply_all_users(self, _btn):
+        t = THEMES[current_theme()]
+        parts = ",".join(p for p, row in self.part_rows if row.get_active())
+        proc = subprocess.Popen(["pkexec", SYSTEM_HELPER, "dark" if t["dark"] else "light",
+                                 "apple" if t["apple"] else "gnome", parts])
+        GLib.child_watch_add(GLib.PRIORITY_DEFAULT, proc.pid, self.on_all_users_done)
+
+    def on_all_users_done(self, _pid, status):
+        ok = os.waitstatus_to_exitcode(status) == 0
+        self.toast.add_toast(Adw.Toast(
+            title="Aplicado para todos os usuários" if ok else "Não foi aplicado para todos"))
+
+    def on_part_toggled(self, row, _pspec, part):
+        if not self.syncing:
+            blur_set(part, row.get_active())
+
+    def refresh_status(self):
+        installed, missing, status = glass_installed(), missing_components(), script_status()
+        if (installed, missing, status) == self.last_status:
+            return True
+        if self.last_status and len(missing) < len(self.last_status[1]):
+            theme = THEMES[current_theme()]
+            if theme["apple"]:
+                apply_theme(theme)  # algo acabou de ser instalado: aplica sem precisar clicar de novo
+        self.last_status = (installed, missing, status)
+
+        if status == "instalando":
+            title, sub, icon = "Instalando…", "Siga o terminal que abriu", "content-loading-symbolic"
+        elif not missing:
+            title, sub, icon = ("Tudo instalado", "Se o vidro ou o efeito de minimizar não aparecem, "
+                                "saia e entre na sessão", "emblem-ok-symbolic")
+        elif status == "erro":
+            title, sub, icon = "A instalação falhou", "Veja o terminal e tente de novo", "dialog-warning-symbolic"
+        else:
+            title = f"Falta instalar: {', '.join(missing)}"
+            sub, icon = "O botão abre um terminal e pede sua senha", "dialog-information-symbolic"
+        self.status_row.set_title(title)
+        self.status_row.set_subtitle(sub)
+        self.status_icon.set_from_icon_name(icon)
+        self.install_btn.set_visible(bool(missing) and status != "instalando")
+
+        self.syncing = True
+        for part, row in self.part_rows:
+            row.set_sensitive(installed)
+            row.set_active(installed and blur_get(part))
+        self.syncing = False
+        return True
+
+
+if __name__ == "__main__":
+    if sys.argv[1:2] == ["--reaplicar"]:
+        apply_theme(THEMES[current_theme()])  # usado pelo instalar-seletor-de-tema
+    elif sys.argv[1:2] == ["--tema"] and sys.argv[2:3] and sys.argv[2] in THEMES:
+        apply_theme(THEMES[sys.argv[2]])
+    else:
+        App().run()

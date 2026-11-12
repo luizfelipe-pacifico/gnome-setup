@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Seletor de Tema
+Comment=Alterna entre estilo Apple e GNOME, claro ou escuro
+Exec=/usr/local/bin/seletor-de-tema
+Icon=seletor-de-tema
+StartupWMClass=local.seletor.tema
+Terminal=false
+Type=Application
+Categories=Settings;

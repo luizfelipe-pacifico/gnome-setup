@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Grava a aparência como padrão do sistema (todos os usuários) via dconf. Roda como root (pkexec).
+# Uso: aparencia-aplicar-todos <dark|light> <apple|gnome> <partes-com-vidro separadas por vírgula>
+set -e
+case "$1" in dark) SCHEME=prefer-dark ;; light) SCHEME=default ;; *) echo "modo inválido" >&2; exit 1 ;; esac
+case "$2" in apple|gnome) ;; *) echo "estilo inválido" >&2; exit 1 ;; esac
+[[ "$3" =~ ^[a-z,-]*$ ]] || { echo "partes inválidas" >&2; exit 1; }
+
+F=/etc/dconf/db/local.d/00-aparencia
+{
+  echo "[org/gnome/desktop/interface]"
+  echo "color-scheme='$SCHEME'"
+  if [ "$2" = apple ]; then
+    # Ponteiro, ícones e fonte só se estiverem instalados para o sistema
+    [ -d /usr/share/icons/macOS/cursors ] && echo "cursor-theme='macOS'"
+    if [ -d /usr/share/icons/WhiteSur ]; then
+      ICONS=WhiteSur
+      [ "$1" = dark ] && [ -d /usr/share/icons/WhiteSur-dark ] && ICONS=WhiteSur-dark
+      [ "$1" = light ] && [ -d /usr/share/icons/WhiteSur-light ] && ICONS=WhiteSur-light
+      echo "icon-theme='$ICONS'"
+    fi
+    if fc-list : family | grep -q '^Inter'; then
+      echo "font-name='Inter 11'"
+      echo "document-font-name='Inter 11'"
+    fi
+    echo "clock-show-weekday=true"
+    echo "enable-hot-corners=false"
+    echo
+    echo "[org/gnome/desktop/wm/preferences]"
+    echo "button-layout='close,minimize,maximize:'"
+    fc-list : family | grep -q '^Inter' && echo "titlebar-font='Inter Semi-Bold 11'"
+    echo
+    echo "[org/gnome/mutter]"
+    echo "center-new-windows=true"
+    W=/usr/share/backgrounds/seletor-de-tema
+    if [ -d "$W" ]; then
+      echo
+      echo "[org/gnome/desktop/background]"
+      echo "picture-uri='file://$W/claro.jpg'"
+      echo "picture-uri-dark='file://$W/escuro.jpg'"
+    fi
+  fi
+  echo
+  echo "[org/gnome/shell]"
+  if [ "$2" = apple ]; then echo "enabled-extensions=['blur-my-shell@aunetx']"; else echo "enabled-extensions=@as []"; fi
+  for p in panel dash-to-dock overview appfolder lockscreen; do
+    echo
+    echo "[org/gnome/shell/extensions/blur-my-shell/$p]"
+    [[ ",$3," == *",$p,"* ]] && echo "blur=true" || echo "blur=false"
+  done
+  echo
+  echo "[org/gnome/shell/extensions/blur-my-shell/overview]"
+  echo "style-components=3"
+  echo "[org/gnome/shell/extensions/blur-my-shell/appfolder]"
+  echo "style-dialogs=3"
+} > "$F"
+dconf update

@@ -151,6 +151,7 @@ GNOME_APPS=(gnome-shell gdm nautilus gnome-console gnome-control-center gnome-se
   gnome-remote-desktop gnome-user-share gnome-user-docs yelp baobab loupe showtime decibels
   snapshot simple-scan sushi malcontent orca tecla grilo-plugins
   papers apostrophe   # leitor de PDF e leitor/editor de Markdown
+  epiphany            # Web, o navegador do GNOME (no estilo Mac fica parecido com o Safari)
   xdg-desktop-portal-gnome xdg-user-dirs-gtk network-manager-applet zenity)
 SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plugin-pipewire
   gst-libav gst-plugins-ugly gst-thumbnailers

@@ -55,11 +55,12 @@ O log fica em `~/.cache/gnome-setup-instalacao.log`.
   pip, cache de shaders...). Lixeira e temporários com mais de 30 dias também somem.
 - a loja do GNOME não baixa atualizações sozinha em segundo plano
 
-**Apps nativos do GNOME** (só os nativos: navegadores, editores de código, Steam, emuladores
+**Apps nativos do GNOME** (só os nativos: outros navegadores, editores de código, Steam, emuladores
 e outros apps de terceiros ficam de fora). Arquivos, Console, Configurações, Ajustes, Texto,
 Calculadora, Calendário, Relógios, Clima, Mapas, Música, Fotos (Loupe), Vídeos (Showtime),
 Câmera, Scanner, Discos, Uso do disco, Logs, Monitor do sistema, Gerenciador de Extensões,
-**Papers** (leitor de PDF), **Apostrophe** (leitor/editor de Markdown) e mais. Também instala
+**Papers** (leitor de PDF), **Apostrophe** (leitor/editor de Markdown), **Web** (o navegador
+do GNOME, que no estilo Mac fica parecido com o Safari) e mais. Também instala
 PipeWire, Bluetooth, firewall (`ufw` + Gufw), Timeshift (backups), `fwupd` (firmware) e acesso a
 Google Drive / OneDrive pelo Arquivos (Contas Online).
 

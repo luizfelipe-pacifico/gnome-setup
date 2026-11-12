@@ -53,7 +53,15 @@ O log fica em `~/.cache/gnome-setup-instalacao.log`.
 - **limpeza automática**: toda semana apaga pacotes velhos baixados, logs antigos e
   runtimes Flatpak sem uso. Todo dia apaga caches sem uso (miniaturas, sobras do yay e do
   pip, cache de shaders...). Lixeira e temporários com mais de 30 dias também somem.
-- a loja do GNOME não baixa atualizações sozinha em segundo plano
+- a loja do GNOME não baixa atualizações sozinha em segundo plano e fica fora da busca da
+  visão geral (senão ela fica rodando parada, ~200 MB de RAM)
+- busca (Vicinae) sem o motor Node das extensões em TypeScript (~70 MB a menos de RAM)
+- `enxugar-sistema`: o pacman deixa de instalar traduções e ajuda de outros idiomas, documentação
+  de desenvolvedor e arquivos repetidos (mantém inglês, português e o idioma do sistema), apaga
+  o que já tinha e deixa só a última versão de cada pacote no cache. Na minha máquina: ~8 GB.
+- o estilo Mac gasta quase nada: ícones ~2 MB, fonte Inter variável 1,7 MB, vidro estático
+  (calculado uma vez, não a cada quadro) e o widget de fotos desligado por padrão (ligado, no
+  máximo 30 fotos de 600 px)
 
 **Apps nativos do GNOME** (só os nativos: outros navegadores, editores de código, Steam, emuladores
 e outros apps de terceiros ficam de fora). Arquivos, Console, Configurações, Ajustes, Texto,

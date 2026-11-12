@@ -52,9 +52,9 @@ def svg(hoje):
     </filter>
   </defs>
   <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#papel)" filter="url(#sombra)"/>
-  <text x="64" y="40" text-anchor="middle" font-family="Inter, Adwaita Sans, sans-serif"
+  <text x="64" y="40" text-anchor="middle" font-family="Inter Variable, Inter, Adwaita Sans, sans-serif"
         font-size="17" font-weight="700" letter-spacing="1" fill="#ff3b30">{dia}</text>
-  <text x="64" y="98" text-anchor="middle" font-family="Inter, Adwaita Sans, sans-serif"
+  <text x="64" y="98" text-anchor="middle" font-family="Inter Variable, Inter, Adwaita Sans, sans-serif"
         font-size="58" font-weight="300" fill="{cor_num}">{hoje.day}</text>
 </svg>
 """

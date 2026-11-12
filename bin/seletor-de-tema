@@ -27,7 +27,7 @@ FOTOS_DIR = os.path.join(GLib.get_user_data_dir(), "widget-fotos")
 VICINAE_DIR = os.path.join(GLib.get_user_config_dir(), "vicinae")
 VICINAE_MAC = os.path.join(VICINAE_DIR, "estilo-mac.json")
 VICINAE_MAC_CFG = {
-    "font": {"normal": {"family": "Inter"}},
+    "font": {"normal": {"family": "Inter Variable"}},
     "theme": {"light": {"name": "macos-claro"}, "dark": {"name": "macos-escuro"}},
     "launcher_window": {
         "opacity": 0.86,              # vidro translúcido
@@ -37,7 +37,9 @@ VICINAE_MAC_CFG = {
         "size": {"width": 680, "height": 440},
     },
 }
-FOTO_MAX = 720  # as fotos são copiadas já reduzidas: pouca RAM no Shell e pouco disco
+FOTO_MAX = 600  # as fotos são copiadas já reduzidas: pouca RAM no Shell e pouco disco
+# O GNOME guarda na memória cada foto já mostrada; com o limite, o widget gasta no máximo ~40 MB
+FOTOS_LIMITE = 30
 INTERVALOS = [(30, "30 segundos"), (60, "1 minuto"), (300, "5 minutos"), (900, "15 minutos"),
               (3600, "1 hora")]
 TAMANHOS = [(180, "Pequeno"), (260, "Médio"), (360, "Grande")]
@@ -55,7 +57,7 @@ ORIGINALS_FILE = os.path.join(CONFIG_DIR, "originais.json")
 APPLE_BUTTONS = "close,minimize,maximize:"
 CURSOR = "macOS"
 ICONS = "MacApps"  # só ícones de apps estilo Mac; barra e símbolos seguem os do GNOME
-FONT = "Inter"
+FONT = "Inter Variable"  # versão variável: um arquivo de 1,7 MB com todos os pesos
 WALLPAPER_DIR = "/usr/share/backgrounds/seletor-de-tema"
 EXT_DIRS = [os.path.expanduser("~/.local/share/gnome-shell/extensions"),
             "/usr/share/gnome-shell/extensions"]
@@ -704,6 +706,13 @@ class App(Adw.Application):
         except GLib.Error:
             return  # cancelou
         paths = [f.get_path() for f in arquivos if f.get_path()]
+        vagas = FOTOS_LIMITE - len(fotos_atuais())
+        if len(paths) > vagas:
+            self.toast.add_toast(Adw.Toast(
+                title=f"O widget guarda até {FOTOS_LIMITE} fotos; {max(vagas, 0)} foram adicionadas"))
+            paths = paths[:max(vagas, 0)]
+        if not paths:
+            return
         self.fotos_row.set_subtitle(f"Copiando {len(paths)} foto(s)…")
 
         def copiar():

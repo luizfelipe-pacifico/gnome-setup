@@ -18,16 +18,16 @@ F=/etc/dconf/db/local.d/00-aparencia
       if [ "$1" = dark ] && [ -d /usr/local/share/icons/MacApps-dark ]; then echo "icon-theme='MacApps-dark'"
       else echo "icon-theme='MacApps'"; fi
     fi
-    if fc-list : family | grep -q '^Inter'; then
-      echo "font-name='Inter 11'"
-      echo "document-font-name='Inter 11'"
+    if fc-list : family | grep -q '^Inter Variable'; then
+      echo "font-name='Inter Variable 11'"
+      echo "document-font-name='Inter Variable 11'"
     fi
     echo "clock-show-weekday=true"
     echo "enable-hot-corners=false"
     echo
     echo "[org/gnome/desktop/wm/preferences]"
     echo "button-layout='close,minimize,maximize:'"
-    fc-list : family | grep -q '^Inter' && echo "titlebar-font='Inter Semi-Bold 11'"
+    fc-list : family | grep -q '^Inter Variable' && echo "titlebar-font='Inter Variable Semi-Bold 11'"
     echo
     echo "[org/gnome/mutter]"
     echo "center-new-windows=true"

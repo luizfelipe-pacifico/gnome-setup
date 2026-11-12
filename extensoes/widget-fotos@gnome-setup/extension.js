@@ -13,6 +13,8 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 const PASTA = GLib.build_filenamev([GLib.get_user_data_dir(), 'widget-fotos']);
 const MARGEM = 32;
 const FADE_MS = 900;
+// O Shell guarda na memória cada foto já mostrada: o limite segura o gasto (fotos de ~600 px)
+const LIMITE = 30;
 
 export default class WidgetFotos extends Extension {
     enable() {
@@ -104,11 +106,11 @@ export default class WidgetFotos extends Extension {
             const j = Math.floor(Math.random() * (i + 1));
             [fotos[i], fotos[j]] = [fotos[j], fotos[i]];
         }
-        this._fotos = fotos;
+        this._fotos = fotos.slice(0, LIMITE);
         this._indice = -1;
-        this._quadro.visible = fotos.length > 0;
+        this._quadro.visible = this._fotos.length > 0;
         this._baixo.style = this._cima.style = null;
-        if (fotos.length)
+        if (this._fotos.length)
             this._proxima(false);
         this._agendar();
     }

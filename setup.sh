@@ -58,6 +58,8 @@ if [ "$MULTILIB" = sim ] && ! grep -q '^\[multilib\]' "$PC"; then
   sudo sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' "$PC"
 fi
 ok "pacman com cor, barra de progresso Pac-Man e 10 downloads ao mesmo tempo"
+# Antes de instalar qualquer coisa: o pacman deixa de extrair o que não se usa (menos SSD)
+sudo "$REPO_DIR/bin/enxugar-sistema" | tail -1
 
 if [ "$ARCH" = x86_64 ] && grep -q '^Server.*archlinux' /etc/pacman.d/mirrorlist 2>/dev/null; then
   etapa "Escolhendo os espelhos mais rápidos"
@@ -209,7 +211,7 @@ ok "modos de energia (Economia/Equilibrado/Desempenho) e GameMode ligando o Dese
 etapa "Instalando meus apps"
 APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp projetos-git
       gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar limpeza-sistema
-      icone-calendario)
+      icone-calendario enxugar-sistema)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
 for d in seletor-de-tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
          io.github.luizfelipe.AppGridOrder local.controle.zram; do
@@ -264,6 +266,12 @@ etapa "Configurações do GNOME"
 sessao dconf load / < "$REPO_DIR/gnome/configuracoes.ini"
 command -v vicinae >/dev/null && systemctl --user enable vicinae.service 2>/dev/null || true
 install -Dm644 -t "$HOME/.local/share/vicinae/themes" "$REPO_DIR"/vicinae/themes/*.toml   # cores do Mac
+if command -v vicinae >/dev/null; then
+  # Sem o motor Node do Vicinae (só serve para extensões em TypeScript): ~70 MB a menos de RAM
+  mkdir -p "$HOME/.config/systemd/user/vicinae.service.d"
+  printf '[Service]\nExecStart=\nExecStart=%s server --replace --no-extension-runtime\n' \
+    "$(command -v vicinae)" > "$HOME/.config/systemd/user/vicinae.service.d/desempenho.conf"
+fi
 systemctl --user enable systemd-tmpfiles-clean.timer 2>/dev/null || true   # limpa o cache do usuário
 systemctl --user daemon-reload 2>/dev/null || true
 systemctl --user enable icone-calendario.timer 2>/dev/null || true         # data de hoje no ícone
@@ -284,7 +292,7 @@ EOF
 # Sobras da instalação
 yay -Yc --noconfirm >/dev/null 2>&1 || true          # dependências de compilação que ficaram sem uso
 rm -rf "$HOME/.cache/yay"/*
-sudo paccache -qrk1 2>/dev/null || true
+sudo /usr/local/bin/enxugar-sistema || true      # o que os pacotes trouxeram de outros idiomas
 
 # ---------------------------------------------------------------- fim
 echo

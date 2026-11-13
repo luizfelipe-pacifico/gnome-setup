@@ -177,6 +177,8 @@ instalar "${DRV[@]}" "${GNOME_APPS[@]}" "${SISTEMA[@]}"
 pacman -Q switcheroo-control &>/dev/null && sudo systemctl enable switcheroo-control || true
 pacman -Q thermald &>/dev/null && sudo systemctl enable thermald || true
 yay -S --needed --noconfirm vicinae-bin || aviso "Vicinae (busca rápida) não instalou"
+# IA de ampliação do Upscale 4K (Real-ESRGAN, roda na placa de vídeo pelo Vulkan)
+yay -S --needed --noconfirm realesrgan-ncnn-vulkan-bin || aviso "Real-ESRGAN não instalou: o Upscale 4K usa o modo simples"
 ok "apps instalados"
 
 # ---------------------------------------------------------------- desempenho

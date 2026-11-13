@@ -4,7 +4,7 @@
 # e no clique direito do Arquivos. Uso: upscale-4k imagem [imagem...]
 set -uo pipefail
 # UPSCALE_SILENCIOSO=1 (testes): sem notificação e sem abrir o resultado
-avisar() { [ -z "${UPSCALE_SILENCIOSO:-}" ] && notify-send -a "Upscale 4K" -i zoom-in "$@" 2>/dev/null || echo "$*"; }
+avisar() { [ -z "${UPSCALE_SILENCIOSO:-}" ] && notify-send -a "Upscale 4K" -i upscale-4k "$@" 2>/dev/null || echo "$*"; }
 command -v magick >/dev/null || { avisar "Upscale 4K" "Falta o ImageMagick: sudo pacman -S imagemagick"; exit 1; }
 [ $# -gt 0 ] || { echo "Uso: upscale-4k imagem [imagem...]"; exit 1; }
 
@@ -20,15 +20,26 @@ for f in "$@"; do
   alvo='3840x2160^'; [ "$h" -gt "$w" ] && alvo='2160x3840^'   # foto em pé: 4K na vertical
   saida="${f%.*}-4k.jpg"
   avisar "Ampliando…" "$(basename "$f") (${w}×${h})"
-  # Em etapas de 2× com nitidez a cada passo: mais definido que ampliar de uma vez
-  if magick "$f[0]" -auto-orient -colorspace RGB \
-       -filter Lanczos -resize 200% -unsharp 0x1+0.6+0.01 -resize 200% -unsharp 0x1.2+0.5+0.01 \
-       -resize "$alvo" -colorspace sRGB -unsharp 0x1.5+0.4+0.02 \
-       -strip -sampling-factor 4:2:0 -quality 90 "$saida"; then
+  # Com a IA (Real-ESRGAN): recria os detalhes e tira o ruído e os quadradinhos do JPEG em uma
+  # passada 4×; o resto até o 4K é só redimensionar, sem nitidez extra (nitidez realça ruído).
+  # Sem a IA: só redimensiona, com um leve tira-ruído
+  tmp=$(mktemp -d)
+  modelos=(); for d in /usr/share/realesrgan-ncnn-vulkan/models /opt/realesrgan-ncnn-vulkan/models; do
+    [ -d "$d" ] && modelos=(-m "$d"); done
+  if command -v realesrgan-ncnn-vulkan >/dev/null &&
+     magick "$f[0]" -auto-orient "$tmp/in.png" &&
+     realesrgan-ncnn-vulkan -i "$tmp/in.png" -o "$tmp/ia.png" -n realesrgan-x4plus "${modelos[@]}" -t 256 >/dev/null 2>&1; then
+    origem="$tmp/ia.png"; limpa=()
+  else
+    origem="$f[0]"; limpa=(-auto-orient -enhance)
+  fi
+  if magick "$origem" "${limpa[@]}" -colorspace RGB -filter Lanczos -resize "$alvo" -colorspace sRGB \
+       -strip -sampling-factor 4:2:0 -quality 92 "$saida"; then
     feitos+=("$saida")
   else
     avisar "Upscale 4K" "Não deu para ampliar $(basename "$f")"
   fi
+  rm -rf "$tmp"
 done
 
 [ ${#feitos[@]} -gt 0 ] || exit 1

@@ -84,6 +84,12 @@ sys.exit(1)" "$w" || { echo "  pequeno: $w"; exit 1; }
 checa "Upscale 4K instalado pelo setup" bash -c '
   grep -q "upscale-4k)" setup.sh && grep -q "local.gnomesetup.Upscale; do" setup.sh &&
   grep -qE "^[[:space:]]+imagemagick\)" setup.sh'
+checa "Upscale 4K usa a IA (Real-ESRGAN) quando instalada" bash -c '
+  grep -q "realesrgan-ncnn-vulkan-bin" setup.sh && grep -q "realesrgan-ncnn-vulkan -i" bin/upscale-4k &&
+  ! grep -q -- "-unsharp" bin/upscale-4k'
+checa "Upscale 4K com ícone próprio no estilo dos outros" bash -c '
+  grep -q "^Icon=upscale-4k$" applications/local.gnomesetup.Upscale.desktop &&
+  grep -q "rx=\"26\"" icons/upscale-4k.svg && rsvg-convert icons/upscale-4k.svg >/dev/null'
 checa "Upscale 4K aparece em Abrir com… para imagens" bash -c '
   f=applications/local.gnomesetup.Upscale.desktop
   grep -q "^MimeType=.*image/jpeg;.*image/png;" $f && grep -q "^Exec=/usr/local/bin/upscale-4k %F" $f &&
@@ -98,6 +104,15 @@ if command -v magick >/dev/null; then
     bash -c '[ "$(magick identify -format %wx%h "$1")" = 3840x2160 ]' _ "$T/foto pequena-4k.jpg"
   checa "Upscale 4K não mexe na original" cmp -s "$T/foto pequena.png" "$T/original.png"
   checa "Upscale 4K pula imagem que já é 4K" test ! -e "$T/grande-4k.jpg"
+  # 2026-11-13: nitidez em etapas realçava o ruído (papéis de parede granulados). Ampliar não
+  # pode deixar a imagem mais ruidosa que a original
+  magick -size 640x360 gradient:gray30-gray70 -attenuate 0.4 +noise Gaussian "$T/ruido.png"
+  UPSCALE_SILENCIOSO=1 bin/upscale-4k "$T/ruido.png" >/dev/null 2>&1
+  magick "$T/ruido.png" -filter Lanczos -resize 3840x2160 "$T/ruido-simples.png"
+  checa "Upscale 4K não aumenta o ruído" bash -c '
+    r() { magick "$1" -crop 800x800+1500+700 -statistic StandardDeviation 3x3 -format "%[fx:mean]" info:; }
+    python3 -c "import sys; sys.exit(float(sys.argv[2]) > float(sys.argv[1]) * 1.1)" "$(r "$1")" "$(r "$2")"' \
+    _ "$T/ruido-simples.png" "$T/ruido-4k.jpg"
   magick -size 400x800 xc:white "$T/retrato.png"
   UPSCALE_SILENCIOSO=1 bin/upscale-4k "$T/retrato.png" >/dev/null 2>&1
   checa "Upscale 4K não corta foto em pé" \

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- No estilo dos ícones do macOS: quadrado arredondado com degradê, uma foto com setas de
+       ampliar e o selo 4K -->
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f6bff"/><stop offset="1" stop-color="#4b2fd6"/>
+    </linearGradient>
+    <linearGradient id="brilho" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.24"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7cc4ff"/><stop offset="1" stop-color="#d9efff"/>
+    </linearGradient>
+    <linearGradient id="selo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb340"/><stop offset="1" stop-color="#ff7a1a"/>
+    </linearGradient>
+    <clipPath id="foto"><rect x="30" y="34" width="60" height="46" rx="5"/></clipPath>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#1d0a6b" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#fundo)" filter="url(#sombra)"/>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#brilho)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#fff" stroke-opacity="0.18"/>
+  <!-- Foto: moldura branca, céu, sol e montanhas -->
+  <g filter="url(#leve)">
+    <rect x="26" y="30" width="68" height="54" rx="8" fill="#fff"/>
+    <g clip-path="url(#foto)">
+      <rect x="30" y="34" width="60" height="46" fill="url(#ceu)"/>
+      <circle cx="76" cy="46" r="6" fill="#ffd34d"/>
+      <path d="M30 80 L50 54 L62 68 L70 60 L90 80 Z" fill="#34c759"/>
+      <path d="M30 80 L50 54 L56 62 L44 80 Z" fill="#248a3d" opacity="0.55"/>
+    </g>
+  </g>
+  <!-- Setas de ampliar nos cantos -->
+  <g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#leve)">
+    <path d="M18 34 V20 H32"/><path d="M96 20 H110 V34"/><path d="M18 94 V108 H32"/>
+  </g>
+  <!-- Selo 4K -->
+  <g filter="url(#leve)">
+    <rect x="66" y="78" width="44" height="30" rx="9" fill="url(#selo)"/>
+    <text x="88" y="100" text-anchor="middle" font-family="Inter Variable, Inter, Helvetica, Arial, sans-serif"
+          font-size="21" font-weight="800" fill="#fff">4K</text>
+  </g>
+</svg>

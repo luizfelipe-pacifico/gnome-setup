@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Não deixa subir para o GitHub com um erro já resolvido de volta.
+# Ativar uma vez no clone: git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/tests/regressao.sh"

@@ -40,7 +40,8 @@ GPUS=$(lspci -nn 2>/dev/null | grep -E '\[03(00|02|80)\]' || true)
 tem_gpu() { grep -qi "\[$1:" <<<"$GPUS"; }
 NVIDIA_IDS=$(grep -oiP '\[10de:\K[0-9a-f]{4}' <<<"$GPUS" || true)
 LAPTOP=$(ls /sys/class/power_supply/BAT* >/dev/null 2>&1 && echo sim || echo não)
-VIRT=$(systemd-detect-virt 2>/dev/null || echo none)
+# systemd-detect-virt imprime "none" e sai com erro fora de VM: não somar outro "none"
+VIRT=$(systemd-detect-virt 2>/dev/null || true); VIRT=${VIRT:-none}
 RAM_GB=$(awk '/MemTotal/ { printf "%.0f", $2 / 1048576 }' /proc/meminfo)
 MULTILIB=$([ "$ARCH" = x86_64 ] && echo sim || echo não)
 ok "CPU: $CPU_NOME ($CPU, $ARCH, $(nproc) núcleos)"
@@ -91,7 +92,8 @@ if ! command -v yay >/dev/null; then
   (cd "$TMP/yay-bin" && makepkg -si --noconfirm)
   rm -rf "$TMP"
 fi
-yay --save --answerdiff None --answerclean None --removemake >/dev/null 2>&1 || true
+# Precisa de uma operação (-Y): "yay --save" sozinho vira "yay -Syu" escondido e trava esperando resposta
+yay -Y --save --answerdiff None --answerclean None --removemake </dev/null >/dev/null 2>&1 || true
 ok "yay $(yay --version | awk '{print $2}')"
 sudo install -Dm644 "$REPO_DIR/sistema/etc/makepkg.conf.d/90-paralelo.conf" /etc/makepkg.conf.d/90-paralelo.conf
 ok "pacotes do AUR compilam com os $(nproc) núcleos"
@@ -153,7 +155,7 @@ GNOME_APPS=(gnome-shell gdm nautilus gnome-console gnome-control-center gnome-se
   gnome-remote-desktop gnome-user-share gnome-user-docs yelp baobab loupe showtime decibels
   snapshot simple-scan sushi malcontent orca tecla grilo-plugins
   papers apostrophe   # leitor de PDF e leitor/editor de Markdown
-  epiphany            # Web, o navegador do GNOME (no estilo Mac fica parecido com o Safari)
+  # Sem navegador: cada pessoa instala o que quiser (o tema se aplica ao Firefox/Chrome que existir)
   xdg-desktop-portal-gnome xdg-user-dirs-gtk network-manager-applet zenity)
 SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plugin-pipewire
   gst-libav gst-plugins-ugly gst-thumbnailers

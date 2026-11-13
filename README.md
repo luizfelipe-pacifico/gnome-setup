@@ -86,10 +86,17 @@ menu do pé do GNOME aparecerem. Rodar de novo atualiza.
 e outros apps de terceiros ficam de fora). Arquivos, Console, Configurações, Ajustes, Texto,
 Calculadora, Calendário, Relógios, Clima, Mapas, Música, Fotos (Loupe), Vídeos (Showtime),
 Câmera, Scanner, Discos, Uso do disco, Logs, Monitor do sistema, Gerenciador de Extensões,
-**Papers** (leitor de PDF), **Apostrophe** (leitor/editor de Markdown), **Web** (o navegador
-do GNOME, que no estilo Mac fica parecido com o Safari) e mais. Também instala
+**Papers** (leitor de PDF), **Apostrophe** (leitor/editor de Markdown) e mais. Também instala
 PipeWire, Bluetooth, firewall (`ufw`, sempre ligado), Timeshift (backups), `fwupd` (firmware) e acesso a
 Google Drive / OneDrive pelo Arquivos (Contas Online).
+
+**Navegador: nenhum.** Cada pessoa instala o que preferir (Firefox, Chrome, Brave...).
+As parametrizações (botões coloridos, ícone, cores) se aplicam sozinhas ao navegador que
+estiver instalado, inclusive se ele for instalado depois: é só escolher o tema de novo na Aparência.
+
+**Nada pessoal**: o comando não instala contas, chaves, acessos, projetos nem configurações
+de quem mantém o repositório. Cada usuário recebe só os apps e o visual. Detalhes em
+[docs/o-que-e-instalado.md](docs/o-que-e-instalado.md).
 
 **Meus apps**
 
@@ -121,8 +128,8 @@ os próprios botões.
 - ponteiro do macOS e fonte Inter
 - ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
   Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Programas (sacola),
-  Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (bússola sobre um globo),
-  Arquivos (pasta), Vim e Vicinae têm desenho próprio no estilo da sacola: o quadrado
+  Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (bússola sobre um globo, se
+  instalado), Arquivos (pasta), Vim e Vicinae têm desenho próprio no estilo da sacola: o quadrado
   arredondado é o próprio objeto, sem nada colado em cima. O Firefox fica com a raposa no globo,
   no azul do Developer Edition. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
@@ -162,6 +169,25 @@ extensoes/             minhas extensões do GNOME Shell
 vicinae/themes/        cores do Mac para a busca (Vicinae)
 sistema/               arquivos de sistema: desempenho, zram, discos, limpeza, crash, firewall
 pessoal/               coisas só da minha máquina (RPCS3, controle de PS4); o setup não instala
+tests/regressao.sh     testes de regressão (rodam antes de cada push e no GitHub Actions)
+.githooks/pre-push     bloqueia o push se algum teste falhar
+docs/                  documentação detalhada
+```
+
+## Documentação
+
+- [Instalação e atualização](docs/instalacao.md)
+- [O que é instalado (e o que não é)](docs/o-que-e-instalado.md)
+- [Problemas comuns](docs/problemas-comuns.md)
+- [Testes de regressão](docs/testes.md)
+
+## Testes
+
+Todo erro já resolvido vira um teste em `tests/regressao.sh`, para nunca voltar:
+
+```bash
+git config core.hooksPath .githooks   # uma vez por clone: o push só sai com os testes passando
+bash tests/regressao.sh               # rodar na mão
 ```
 
 Para atualizar só a aparência e o app Firewall sem rodar tudo: `bin/instalar-seletor-de-tema` (é o que o `estilo.sh` roda).

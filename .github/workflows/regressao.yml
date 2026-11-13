@@ -1,0 +1,9 @@
+name: Testes de regressão
+on: [push, pull_request]
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y shellcheck
+      - run: bash tests/regressao.sh

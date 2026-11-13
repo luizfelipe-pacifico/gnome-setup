@@ -8,7 +8,13 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 LOG="$HOME/.cache/gnome-setup-instalacao.log"
 mkdir -p "$(dirname "$LOG")"
-exec > >(tee -a "$LOG") 2>&1
+# Grava o log pelo "script", que mantém o terminal: com "tee" o pacman acha que não está num
+# terminal e esconde as barras de progresso (a do Pac-Man inclusive)
+if [ -z "${GNOME_SETUP_NO_SCRIPT:-}" ] && [ -t 1 ] && command -v script >/dev/null; then
+  export GNOME_SETUP_NO_SCRIPT=1
+  exec script -qefa -c "$(printf '%q ' bash "$(readlink -f "$0")" "$@")" "$LOG"
+fi
+[ -t 1 ] || exec > >(tee -a "$LOG") 2>&1
 
 azul=$'\e[1;34m'; verde=$'\e[1;32m'; amarelo=$'\e[1;33m'; vermelho=$'\e[1;31m'; fim=$'\e[0m'
 etapa() { echo; echo "${azul}==>${fim} $*"; }
@@ -62,11 +68,14 @@ ok "pacman com cor, barra de progresso Pac-Man e 10 downloads ao mesmo tempo"
 # Antes de instalar: o pacman não extrai as partes repetidas do que vamos colocar (menos SSD)
 sudo "$REPO_DIR/bin/enxugar-sistema" | tail -1
 
-if [ "$ARCH" = x86_64 ] && grep -q '^Server.*archlinux' /etc/pacman.d/mirrorlist 2>/dev/null; then
+# Espelhos escolhidos há menos de 7 dias continuam bons: quem roda de novo não espera o reflector
+if [ "$ARCH" = x86_64 ] && grep -q '^Server.*archlinux' /etc/pacman.d/mirrorlist 2>/dev/null &&
+   [ -z "$(find /etc/pacman.d/mirrorlist -mtime -7 2>/dev/null)" ]; then
   etapa "Escolhendo os espelhos mais rápidos"
   sudo pacman -S --needed --noconfirm reflector >/dev/null
+  echo "  testando a velocidade dos espelhos (até 3 minutos, sem mostrar nada na tela)..."
   sudo cp -n /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.antes-gnome-setup || true
-  if sudo timeout 180 reflector --latest 20 --protocol https --sort rate \
+  if sudo timeout 180 reflector --latest 20 --protocol https --sort rate --download-timeout 3 \
        --save /etc/pacman.d/mirrorlist 2>/dev/null; then ok "espelhos atualizados"
   else aviso "reflector demorou ou falhou, mantendo os espelhos atuais"; fi
 fi
@@ -139,11 +148,8 @@ case "$VIRT" in
   vmware)   DRV+=(open-vm-tools) ;;
 esac
 [ "$MULTILIB" = sim ] && DRV+=("${L32[@]}")
-instalar "${DRV[@]}"
-[ "${NVIDIA_SERVICOS:-}" = sim ] && sudo systemctl enable nvidia-suspend nvidia-hibernate nvidia-resume 2>/dev/null || true
-pacman -Q switcheroo-control &>/dev/null && sudo systemctl enable switcheroo-control || true
-pacman -Q thermald &>/dev/null && sudo systemctl enable thermald || true
-ok "drivers instalados"
+# Os drivers entram na mesma transação dos apps (mais abaixo): uma resolução e um download só
+ok "drivers escolhidos: ${DRV[*]}"
 
 # ---------------------------------------------------------------- apps nativos
 etapa "Apps nativos do GNOME e utilitários do sistema"
@@ -165,7 +171,10 @@ SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plu
   fwupd smartmontools htop atop fastfetch jq wget curl unzip flatpak pacman-contrib
   python-gobject gtk3 gtk4 libadwaita usbutils xdg-utils)
 [ "$MULTILIB" = sim ] && SISTEMA+=(lib32-gamemode)
-instalar "${GNOME_APPS[@]}" "${SISTEMA[@]}"
+instalar "${DRV[@]}" "${GNOME_APPS[@]}" "${SISTEMA[@]}"
+[ "${NVIDIA_SERVICOS:-}" = sim ] && sudo systemctl enable nvidia-suspend nvidia-hibernate nvidia-resume 2>/dev/null || true
+pacman -Q switcheroo-control &>/dev/null && sudo systemctl enable switcheroo-control || true
+pacman -Q thermald &>/dev/null && sudo systemctl enable thermald || true
 yay -S --needed --noconfirm vicinae-bin || aviso "Vicinae (busca rápida) não instalou"
 ok "apps instalados"
 

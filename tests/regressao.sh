@@ -45,17 +45,10 @@ checa "escolha de aparência só uma vez" bash -c '
   grep -q "escolha-inicial-feita" setup.sh &&
   grep -B3 "escolher-tema.desktop\" <<" setup.sh | grep -q "ESCOLHA_FEITA"'
 
-# 2026-11-13: o dconf load trocava os apps fixados no dock pelos do setup. Os da pessoa ficam.
-checa "dock mantém os apps já fixados" bash -c '
-  grep -B3 "dconf load / < \"\$REPO_DIR/gnome/configuracoes.ini\"" setup.sh | grep -q "FIXADOS_ANTES=" &&
-  grep -q "antes + \[a for a in setup if a not in antes\]" setup.sh'
-
-# 2026-11-13: o Monitor de Temperatura era fixado no dock sozinho. O setup só fixa apps
-# nativos do GNOME; apps do repositório (local.*, io.github.*) nunca entram no dock sozinhos.
-# 2026-11-13: o Calendário também não pode ser fixado sozinho.
-# 2026-11-13: o Calendário também não pode ser fixado sozinho.
-checa "dock sem apps do repositório nem Calendário fixados" bash -c '
-  ! grep -E "^favorite-apps=" gnome/configuracoes.ini | grep -qE "local\.|io\.github\.|MonitorTemp|Calendar"'
+# 2026-11-13: o setup trocava os apps fixados no dock e fixava sozinho o Monitor de
+# Temperatura e o Calendário. O dock é escolha de cada pessoa: o setup nunca escreve nele.
+checa "setup nunca mexe nos apps fixados no dock" bash -c '
+  ! grep -rnE "favorite-apps|favorite_apps" gnome/ setup.sh instalar.sh estilo.sh bin/ sistema/'
 
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum

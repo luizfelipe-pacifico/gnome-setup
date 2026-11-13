@@ -28,8 +28,8 @@ navegador ou contenha um caminho `/home/<usuário>` fixo é bloqueado.
 
 ## O que é preservado
 
-- **Apps fixados no dock**: os que a pessoa já tinha continuam, na mesma ordem. Os do setup
-  (Arquivos, Console, Programas, Texto, Calculadora) só entram no fim se ainda não estiverem lá.
+- **Apps fixados no dock**: o setup nunca fixa nem tira nada do dock. Ele só instala os
+  apps que faltam; fixar é escolha de cada pessoa.
 - O papel de parede atual
 
 ## Desfazer

@@ -273,18 +273,8 @@ sessao /usr/local/bin/apply-macos-look.sh || aviso "algum componente do estilo A
 
 # ---------------------------------------------------------------- configurações
 etapa "Configurações do GNOME"
-# Apps fixados no dock: os que a pessoa já tem ficam (na mesma ordem); os do setup entram depois
-FIXADOS_ANTES=$(sessao dconf read /org/gnome/shell/favorite-apps || true)
+# Não mexe no dock: os apps fixados são escolha de cada pessoa (o setup só instala o que falta)
 sessao dconf load / < "$REPO_DIR/gnome/configuracoes.ini"
-if [ -n "$FIXADOS_ANTES" ]; then
-  FIXADOS=$(python3 -c '
-import ast, sys
-antes = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-setup = ast.literal_eval(sys.argv[2].removeprefix("@as "))
-print(str(antes + [a for a in setup if a not in antes]))' "$FIXADOS_ANTES" \
-    "$(sessao dconf read /org/gnome/shell/favorite-apps)") &&
-    sessao dconf write /org/gnome/shell/favorite-apps "$FIXADOS"
-fi
 command -v vicinae >/dev/null && systemctl --user enable vicinae.service 2>/dev/null || true
 install -Dm644 -t "$HOME/.local/share/vicinae/themes" "$REPO_DIR"/vicinae/themes/*.toml   # cores do Mac
 # Busca leve: sem o motor Node e sem indexar as pastas ocultas (dados de apps, caches)

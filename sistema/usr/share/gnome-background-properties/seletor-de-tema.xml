@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
-<!-- Papel de parede do setup como opção em Configurações → Aparência (nunca é aplicado sozinho) -->
+<!-- Papéis de parede do setup como opção em Configurações → Aparência (nunca são aplicados sozinhos).
+     Os que têm filename-dark trocam sozinhos com o modo claro/escuro. -->
 <wallpapers>
   <wallpaper deleted="false">
     <name>gnome-setup</name>
@@ -9,6 +10,56 @@
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#3465a4</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Montanhas no pôr do sol</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/montanhas.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#c27a2c</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Balão nas montanhas</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/balao.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#b0623f</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Paleta verde</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-verde-claro.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/seletor-de-tema/paleta-verde-escuro.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#85c7a1</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Paleta azul</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-azul-claro.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/seletor-de-tema/paleta-azul-escuro.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#4fb0d3</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Paleta laranja</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-laranja.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#cc4122</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Paleta vermelha</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-vermelho.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#eb0000</pcolor>
     <scolor>#000000</scolor>
   </wallpaper>
 </wallpapers>

@@ -131,8 +131,10 @@ os próprios botões.
   fica azul inteira
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
-- o papel de parede nunca é trocado; o do setup (claro e escuro) fica como opção em
-  Configurações → Aparência
+- o papel de parede nunca é trocado; os do setup ficam como opção em Configurações → Aparência:
+  o do gnome-setup, Montanhas no pôr do sol, Balão nas montanhas e as paletas verde, azul,
+  laranja e vermelha (o do gnome-setup e as paletas verde e azul trocam sozinhos com o modo
+  claro/escuro)
 - **Super+Espaço** abre a busca (Vicinae) com cara de Spotlight: só a barra até digitar, vidro,
   cantos arredondados e as cores do Mac
 - lixeira clara no tema claro e escura no escuro
@@ -149,7 +151,7 @@ estilo.sh              comando de uma linha só da estilização (roda o bin/ins
 setup.sh               instalação completa, adaptada ao hardware
 bin/                   meus apps e scripts (vão para /usr/local/bin)
 applications/, icons/  atalhos e ícones dos apps
-wallpapers/            papéis de parede (gerar.py recria)
+wallpapers/            papéis de parede (gerar.py recria claro.jpg e escuro.jpg)
 gnome/configuracoes.ini   configurações do GNOME (dconf)
 extensoes/             minhas extensões do GNOME Shell
 vicinae/themes/        cores do Mac para a busca (Vicinae)

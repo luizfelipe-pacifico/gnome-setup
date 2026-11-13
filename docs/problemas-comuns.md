@@ -30,3 +30,8 @@ A extensão ainda não foi atualizada para a sua versão do GNOME. O setup avisa
 ## Rodei com sudo
 
 Rode sem `sudo`: o yay não funciona como root. A senha é pedida quando precisa.
+
+## "User ... is logged in on tty2" ao reiniciar no fim (corrigido em 13/11/2026)
+
+O systemd não reinicia enquanto outra conta tem sessão aberta. Agora, se o reinício normal
+falhar, o setup força (`systemctl reboot -i`), fechando as sessões de todas as contas.

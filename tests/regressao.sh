@@ -50,6 +50,12 @@ checa "escolha de aparência só uma vez" bash -c '
 checa "setup nunca mexe nos apps fixados no dock" bash -c '
   ! grep -rnE "favorite-apps|favorite_apps" gnome/ setup.sh instalar.sh estilo.sh bin/ sistema/'
 
+# 2026-11-13: o reinício no fim falhava com outra conta logada ("User X is logged in on tty2").
+# Se o reboot normal falhar, força (reboot -i), reiniciando mesmo com outras contas logadas.
+checa "reinício força com outra conta logada" bash -c '
+  grep -qE "systemctl reboot 2>/dev/null \|\| systemctl reboot -i" setup.sh &&
+  ! grep -nE "^[^#]*&&[[:space:]]*systemctl reboot[[:space:]]*$|^[[:space:]]*systemctl reboot[[:space:]]*$" setup.sh'
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

@@ -312,14 +312,21 @@ sudo /usr/local/bin/enxugar-sistema || true      # cache de pacotes da instalaç
 echo
 echo "${verde}Tudo instalado!${fim} Log completo em $LOG"
 echo "Depois de reiniciar, o Seletor de Tema abre para você escolher a aparência (GNOME ou estilo Mac)."
-if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && command -v zenity >/dev/null; then
-  if zenity --question --title="Instalação concluída" --icon=seletor-de-tema \
-       --text="Tudo pronto!\n\nReinicie o computador para terminar.\nNo próximo login você escolhe o tema." \
-       --ok-label="Reiniciar agora" --cancel-label="Depois" 2>/dev/null; then
-    systemctl reboot
+TEM_JANELA=$([ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && command -v zenity >/dev/null && echo sim || echo não)
+perguntar() {   # perguntar "texto" "sim" "não"
+  if [ "$TEM_JANELA" = sim ]; then
+    zenity --question --title="Instalação concluída" --icon=seletor-de-tema --text="$1" \
+      --ok-label="$2" --cancel-label="$3" 2>/dev/null
+  else
+    local r; read -rp "$(echo -e "$1" | tr '\n' ' ')[S/n] " r </dev/tty || r=n
+    [[ "${r:-s}" =~ ^[sS]$ ]]
   fi
-else
-  read -rp "Reiniciar agora? [S/n] " r </dev/tty || r=n
-  [[ "${r:-s}" =~ ^[sS]$ ]] && systemctl reboot
+}
+# Com outra conta logada o systemd recusa o reboot normal ("User X is logged in"): força,
+# fechando as sessões de todas as contas
+reiniciar() { systemctl reboot 2>/dev/null || systemctl reboot -i; }
+if perguntar "Tudo pronto!\n\nReinicie o computador para terminar.\nNo próximo login você escolhe o tema." \
+     "Reiniciar agora" "Depois"; then
+  reiniciar
 fi
 exit 0

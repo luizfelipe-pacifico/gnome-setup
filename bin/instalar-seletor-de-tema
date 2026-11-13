@@ -13,7 +13,7 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 
 echo "==> O que a Aparência e o Firewall precisam"
 sudo pacman -S --needed --noconfirm base-devel git curl python-gobject python-cairo gtk3 gtk4 \
-  libadwaita librsvg unzip ufw
+  libadwaita librsvg unzip ufw rtkit   # rtkit: o GNOME desenha a tela com prioridade (mais fluido)
 if ! command -v yay >/dev/null; then   # pacotes do AUR do estilo Apple (vidro, ponteiro)
   TMP=$(mktemp -d)
   git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$TMP/yay-bin"

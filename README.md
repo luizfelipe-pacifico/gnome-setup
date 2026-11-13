@@ -70,6 +70,9 @@ menu do pé do GNOME aparecerem. Rodar de novo atualiza.
 - perfis de energia Economia / Equilibrado / Desempenho. O GameMode liga o Desempenho
   sozinho nos jogos e volta ao perfil anterior quando o jogo fecha.
 - `systemd-oomd` para o sistema não travar quando a memória acaba
+- `rtkit`: o GNOME desenha a tela e o PipeWire toca o som com prioridade de tempo real
+- aviso quando o SSD está atrás do Intel VMD (Core Ultra): ele perde interrupções e trava o
+  disco por 30 s de vez em quando. O ajuste é desligar o VMD no BIOS (só em PC só com Linux).
 - split lock sem mitigação em x86 (jogos e emuladores ficam mais rápidos)
 - logs limitados a 100 MB e coredumps a 500 MB. O `atop` não fica gravando histórico.
 - **limpeza automática**: toda semana apaga pacotes velhos baixados, logs antigos e

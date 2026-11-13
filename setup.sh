@@ -150,6 +150,13 @@ esac
 [ "$MULTILIB" = sim ] && DRV+=("${L32[@]}")
 # Os drivers entram na mesma transação dos apps (mais abaixo): uma resolução e um download só
 ok "drivers escolhidos: ${DRV[*]}"
+# Intel VMD (RST) na frente do SSD perde interrupções em CPUs Core Ultra (erratum MTL016, sem
+# correção no kernel): cada perda trava o disco por 30 s e deixa apps, boot e desligamento lentos.
+# O ajuste é desligar o VMD no BIOS; só avisamos, porque mexer no BIOS é com a pessoa.
+if ls -d /sys/bus/pci/drivers/nvme/10000:* &>/dev/null; then
+  VMD_AVISO=sim
+  aviso "o SSD está atrás do Intel VMD: desligue o VMD no BIOS para acabar com travadas de 30 s"
+fi
 
 # ---------------------------------------------------------------- apps nativos
 etapa "Apps nativos do GNOME e utilitários do sistema"
@@ -164,6 +171,7 @@ GNOME_APPS=(gnome-shell gdm nautilus gnome-console gnome-control-center gnome-se
   # Sem navegador: cada pessoa instala o que quiser (o tema se aplica ao Firefox/Chrome que existir)
   xdg-desktop-portal-gnome xdg-user-dirs-gtk network-manager-applet zenity)
 SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plugin-pipewire
+  rtkit   # prioridade de tempo real: o GNOME desenha a tela e o som sem engasgar
   gst-libav gst-plugins-ugly gst-thumbnailers
   gvfs gvfs-afc gvfs-dnssd gvfs-goa gvfs-google gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-onedrive
   gvfs-smb gvfs-wsdd ntfs-3g exfatprogs dosfstools btrfs-progs
@@ -320,6 +328,9 @@ sudo /usr/local/bin/enxugar-sistema || true      # cache de pacotes da instalaç
 echo
 echo "${verde}Tudo instalado!${fim} Log completo em $LOG"
 echo "Depois de reiniciar, o Seletor de Tema abre para você escolher a aparência (GNOME ou estilo Mac)."
+[ "${VMD_AVISO:-}" = sim ] && echo "${amarelo}Importante:${fim} o SSD está atrás do Intel VMD (RST), que perde interrupções e trava o disco por
+30 s de vez em quando. No BIOS (modo avançado), desligue o \"VMD Controller\" / \"Intel VMD\". Só faça isso
+se o computador tiver apenas Linux: o Windows instalado com VMD ligado deixa de iniciar."
 TEM_JANELA=$([ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && command -v zenity >/dev/null && echo sim || echo não)
 perguntar() {   # perguntar "texto" "sim" "não"
   if [ "$TEM_JANELA" = sim ]; then

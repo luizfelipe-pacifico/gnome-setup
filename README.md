@@ -139,6 +139,6 @@ sistema/               arquivos de sistema: desempenho, zram, discos, limpeza, c
 pessoal/               coisas só da minha máquina (RPCS3, controle de PS4); o setup não instala
 ```
 
-Para atualizar só a aparência sem rodar tudo: `bin/instalar-seletor-de-tema`.
+Para atualizar só a aparência e o app Firewall sem rodar tudo: `bin/instalar-seletor-de-tema`.
 
 Requisitos: Arch Linux (ou derivado com pacman) e GNOME. Testado no GNOME 51.

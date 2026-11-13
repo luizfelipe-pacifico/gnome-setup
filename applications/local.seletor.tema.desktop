@@ -4,6 +4,7 @@ Comment=Alterna entre estilo Apple e GNOME, claro ou escuro
 Exec=/usr/local/bin/seletor-de-tema
 Icon=seletor-de-tema
 StartupWMClass=local.seletor.tema
+# O nome do arquivo é o ID do app (local.seletor.tema): assim o dock mostra o ícone com ele aberto
 Terminal=false
 # Fica fora da grade de apps: abre pelo menu do pé do GNOME (Aparência…)
 NoDisplay=true

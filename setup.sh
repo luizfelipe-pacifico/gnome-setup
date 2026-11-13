@@ -215,11 +215,13 @@ APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp p
       gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar firewall
       firewall-aplicar limpeza-sistema icone-calendario enxugar-sistema vicinae-leve)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
-for d in seletor-de-tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
+for d in local.seletor.tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
          io.github.luizfelipe.AppGridOrder local.controle.zram local.luizfelipe.Firewall; do
   sed 's|^Exec=/home/[^/]*/\.local/bin/|Exec=/usr/local/bin/|' "$REPO_DIR/applications/$d.desktop" |
     sudo install -Dm644 /dev/stdin "/usr/local/share/applications/$d.desktop"
 done
+# Nome antigo do atalho da Aparência (o dock não achava o ícone com ele aberto)
+sudo rm -f /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps "$REPO_DIR"/icons/*.svg
 sudo install -Dm644 -t /usr/share/backgrounds/seletor-de-tema "$REPO_DIR"/wallpapers/*.jpg
 sudo install -Dm644 -t /usr/share/gnome-background-properties \

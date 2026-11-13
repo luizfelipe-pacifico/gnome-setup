@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Atualiza só o Seletor de Tema e os componentes do estilo Apple (sem rodar o setup inteiro).
+# Atualiza só o Seletor de Tema, o app Firewall e os componentes do estilo Apple (sem rodar o setup inteiro).
 # Rode como seu usuário, sem sudo: ele pede a senha quando precisa.
 #   ~/meus-scripts/bin/instalar-seletor-de-tema
 set -e
@@ -13,16 +13,31 @@ sudo install -Dm 644 -t /usr/local/lib/systemd/user \
   sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}
 systemctl --user daemon-reload && systemctl --user enable icone-calendario.timer
 sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
-sudo install -Dm 644 applications/seletor-de-tema.desktop /usr/local/share/applications/seletor-de-tema.desktop
+# O nome do atalho é o ID do app: assim o dock mostra o ícone da Aparência quando ela está aberta
+sudo install -Dm 644 applications/local.seletor.tema.desktop /usr/local/share/applications/local.seletor.tema.desktop
 sudo install -Dm 644 -t /usr/share/backgrounds/seletor-de-tema wallpapers/claro.jpg wallpapers/escuro.jpg
 sudo install -Dm 644 -t /usr/share/gnome-background-properties \
   sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
 sudo update-desktop-database -q /usr/local/share/applications || true
 # Versões antigas instaladas em /usr/share e cópias de teste no home
-sudo rm -f /usr/share/applications/seletor-de-tema.desktop \
+sudo rm -f /usr/share/applications/seletor-de-tema.desktop /usr/local/share/applications/seletor-de-tema.desktop \
            /usr/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
 rm -f "$HOME/.local/share/applications/seletor-de-tema.desktop" \
       "$HOME/.local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg"
+
+echo "==> App Firewall (estilo macOS), no lugar do Gufw"
+pacman -Q ufw &>/dev/null || sudo pacman -S --needed --noconfirm ufw
+sudo install -m 755 bin/firewall bin/firewall-aplicar /usr/local/bin/
+sudo install -Dm 644 icons/firewall.svg /usr/local/share/icons/hicolor/scalable/apps/firewall.svg
+sudo install -Dm 644 applications/local.luizfelipe.Firewall.desktop \
+  /usr/local/share/applications/local.luizfelipe.Firewall.desktop
+sudo install -Dm 644 sistema/etc/systemd/system/ufw.service.d/sempre-ativo.conf \
+  /etc/systemd/system/ufw.service.d/sempre-ativo.conf
+sudo systemctl daemon-reload && sudo systemctl enable ufw >/dev/null 2>&1 || true
+sudo ufw --force enable >/dev/null 2>&1 || true
+pacman -Q gufw &>/dev/null && sudo pacman -Rns --noconfirm gufw >/dev/null 2>&1 || true
+sudo update-desktop-database -q /usr/local/share/applications || true
+sudo gtk-update-icon-cache -q -t /usr/local/share/icons/hicolor 2>/dev/null || true
 
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh

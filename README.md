@@ -113,6 +113,7 @@ de quem mantém o repositório. Cada usuário recebe só os apps e o visual. Det
 | Firewall | Como o do macOS: liga/desliga, bloquear todas as conexões de entrada, modo invisível e a lista do que pode receber conexões (no lugar do Gufw) |
 | Ordem dos Aplicativos | Grade de apps em ordem alfabética ou aleatória |
 | Versões | Salvar versões dos projetos (Git), ver o que mudou e voltar atrás |
+| Upscale 4K | Amplia uma imagem para qualidade 4K e salva `nome-4k.jpg` ao lado da original. No app Imagens: menu ☰ (canto superior direito) → **Abrir com…** → **Upscale 4K**; no Arquivos: clique direito → Abrir com |
 | Relatórios de crash | Cada programa que trava gera um relatório legível em `/var/log/crash-reports` |
 
 **Extensões**: Dash to Dock, Kiwi Menu e AppIndicator (versão certa para o seu GNOME,

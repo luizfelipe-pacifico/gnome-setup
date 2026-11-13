@@ -169,7 +169,8 @@ SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plu
   gvfs-smb gvfs-wsdd ntfs-3g exfatprogs dosfstools btrfs-progs
   bluez bluez-utils power-profiles-daemon gamemode zram-generator ufw timeshift cronie
   fwupd smartmontools htop atop fastfetch jq wget curl unzip flatpak pacman-contrib
-  python-gobject gtk3 gtk4 libadwaita usbutils xdg-utils)
+  python-gobject gtk3 gtk4 libadwaita usbutils xdg-utils libnotify
+  imagemagick)   # imagemagick: o Upscale 4K
 [ "$MULTILIB" = sim ] && SISTEMA+=(lib32-gamemode)
 instalar "${DRV[@]}" "${GNOME_APPS[@]}" "${SISTEMA[@]}"
 [ "${NVIDIA_SERVICOS:-}" = sim ] && sudo systemctl enable nvidia-suspend nvidia-hibernate nvidia-resume 2>/dev/null || true
@@ -225,10 +226,11 @@ etapa "Instalando meus apps"
 APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp projetos-git
       gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar firewall
       firewall-aplicar limpeza-sistema icone-calendario enxugar-sistema vicinae-leve
-      aparencia-usuario aparencia-todos-usuarios)
+      aparencia-usuario aparencia-todos-usuarios upscale-4k)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
 for d in local.seletor.tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
-         io.github.luizfelipe.AppGridOrder local.controle.zram local.luizfelipe.Firewall; do
+         io.github.luizfelipe.AppGridOrder local.controle.zram local.luizfelipe.Firewall \
+         local.gnomesetup.Upscale; do
   sed 's|^Exec=/home/[^/]*/\.local/bin/|Exec=/usr/local/bin/|' "$REPO_DIR/applications/$d.desktop" |
     sudo install -Dm644 /dev/stdin "/usr/local/share/applications/$d.desktop"
 done
@@ -248,7 +250,7 @@ sudo update-desktop-database -q /usr/local/share/applications 2>/dev/null || tru
 grep -qs gamemode-profile "$HOME/.config/gamemode.ini" && rm -f "$HOME/.config/gamemode.ini"
 mkdir -p "$HOME/.config/app-grid-order"
 [ -f "$HOME/.config/app-grid-order/mode" ] || echo alphabetical > "$HOME/.config/app-grid-order/mode"
-ok "Aparência, Monitor, Controle do zram, Firewall, Versões, Ordem dos Aplicativos, relatórios de crash"
+ok "Aparência, Monitor, Controle do zram, Firewall, Versões, Ordem dos Aplicativos, Upscale 4K, relatórios de crash"
 
 # ---------------------------------------------------------------- extensões
 etapa "Extensões do GNOME"

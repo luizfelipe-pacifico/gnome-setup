@@ -10,7 +10,8 @@ ferramentas e visual; nada da conta ou da máquina de quem mantém o repositóri
 - Utilitários de sistema: PipeWire, Bluetooth, `ufw`, Timeshift, `fwupd`, zram, Flatpak
 - `yay` e alguns pacotes do AUR para o estilo Apple (Blur my Shell, ponteiro, fonte Inter)
   e a busca Vicinae
-- Os apps do repositório (Aparência, Monitor, Firewall, Controle do zram, Versões...)
+- Os apps do repositório (Aparência, Monitor, Firewall, Controle do zram, Versões, Upscale 4K...)
+- ImageMagick (usado pelo Upscale 4K)
 - Configurações do GNOME (`gnome/configuracoes.ini`)
 
 ## Não instala

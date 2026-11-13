@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Amplia imagens para qualidade 4K (no mínimo 3840×2160, ou 2160×3840 em pé, sem cortar) e salva "nome-4k.jpg"
+# ao lado da original, que fica intacta. Aparece em Imagens → menu ☰ → Abrir com… → Upscale 4K
+# e no clique direito do Arquivos. Uso: upscale-4k imagem [imagem...]
+set -uo pipefail
+# UPSCALE_SILENCIOSO=1 (testes): sem notificação e sem abrir o resultado
+avisar() { [ -z "${UPSCALE_SILENCIOSO:-}" ] && notify-send -a "Upscale 4K" -i zoom-in "$@" 2>/dev/null || echo "$*"; }
+command -v magick >/dev/null || { avisar "Upscale 4K" "Falta o ImageMagick: sudo pacman -S imagemagick"; exit 1; }
+[ $# -gt 0 ] || { echo "Uso: upscale-4k imagem [imagem...]"; exit 1; }
+
+feitos=()
+for f in "$@"; do
+  f=${f#file://}; f=$(printf '%b' "${f//%/\\x}")   # caminhos vindos como URI
+  [ -f "$f" ] || { avisar "Upscale 4K" "Arquivo não encontrado: $f"; continue; }
+  read -r w h < <(magick identify -format '%w %h\n' "$f[0]" 2>/dev/null) ||
+    { avisar "Upscale 4K" "Não é uma imagem: $(basename "$f")"; continue; }
+  if [ $(( w > h ? w : h )) -ge 3840 ] && [ $(( w < h ? w : h )) -ge 2160 ]; then
+    avisar "Já está em 4K" "$(basename "$f") tem ${w}×${h}"; continue
+  fi
+  alvo='3840x2160^'; [ "$h" -gt "$w" ] && alvo='2160x3840^'   # foto em pé: 4K na vertical
+  saida="${f%.*}-4k.jpg"
+  avisar "Ampliando…" "$(basename "$f") (${w}×${h})"
+  # Em etapas de 2× com nitidez a cada passo: mais definido que ampliar de uma vez
+  if magick "$f[0]" -auto-orient -colorspace RGB \
+       -filter Lanczos -resize 200% -unsharp 0x1+0.6+0.01 -resize 200% -unsharp 0x1.2+0.5+0.01 \
+       -resize "$alvo" -colorspace sRGB -unsharp 0x1.5+0.4+0.02 \
+       -strip -sampling-factor 4:2:0 -quality 90 "$saida"; then
+    feitos+=("$saida")
+  else
+    avisar "Upscale 4K" "Não deu para ampliar $(basename "$f")"
+  fi
+done
+
+[ ${#feitos[@]} -gt 0 ] || exit 1
+read -r w h < <(magick identify -format '%w %h\n' "${feitos[-1]}")
+avisar "Pronto: ${w}×${h}" "$(basename "${feitos[-1]}")${feitos[1]:+ e mais $(( ${#feitos[@]} - 1 ))}"
+[ -n "${UPSCALE_SILENCIOSO:-}" ] || gio open "${feitos[0]}" 2>/dev/null || true

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Upscale 4K
+Comment=Amplia a imagem para qualidade 4K e salva uma cópia ao lado da original
+Exec=/usr/local/bin/upscale-4k %F
+Icon=zoom-in
+Terminal=false
+MimeType=image/jpeg;image/png;image/webp;image/bmp;image/tiff;image/gif;image/avif;image/heif;
+Categories=Graphics;
+Keywords=upscale;ampliar;4k;resolução;nitidez;

@@ -80,6 +80,30 @@ while i<len(d):
 sys.exit(1)" "$w" || { echo "  pequeno: $w"; exit 1; }
   done'
 
+# 2026-11-13: Upscale 4K (Imagens → ☰ → Abrir com… → Upscale 4K)
+checa "Upscale 4K instalado pelo setup" bash -c '
+  grep -q "upscale-4k)" setup.sh && grep -q "local.gnomesetup.Upscale; do" setup.sh &&
+  grep -qE "^[[:space:]]+imagemagick\)" setup.sh'
+checa "Upscale 4K aparece em Abrir com… para imagens" bash -c '
+  f=applications/local.gnomesetup.Upscale.desktop
+  grep -q "^MimeType=.*image/jpeg;.*image/png;" $f && grep -q "^Exec=/usr/local/bin/upscale-4k %F" $f &&
+  ! grep -q "^NoDisplay=true" $f'
+if command -v magick >/dev/null; then
+  T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+  magick -size 640x360 gradient:navy-orange "$T/foto pequena.png"
+  magick -size 3840x2160 xc:gray "$T/grande.jpg"
+  cp "$T/foto pequena.png" "$T/original.png"
+  UPSCALE_SILENCIOSO=1 bin/upscale-4k "$T/foto pequena.png" "$T/grande.jpg" >/dev/null 2>&1
+  checa "Upscale 4K gera nome-4k.jpg com 3840×2160" \
+    bash -c '[ "$(magick identify -format %wx%h "$1")" = 3840x2160 ]' _ "$T/foto pequena-4k.jpg"
+  checa "Upscale 4K não mexe na original" cmp -s "$T/foto pequena.png" "$T/original.png"
+  checa "Upscale 4K pula imagem que já é 4K" test ! -e "$T/grande-4k.jpg"
+  magick -size 400x800 xc:white "$T/retrato.png"
+  UPSCALE_SILENCIOSO=1 bin/upscale-4k "$T/retrato.png" >/dev/null 2>&1
+  checa "Upscale 4K não corta foto em pé" \
+    bash -c '[ "$(magick identify -format %wx%h "$1")" = 2160x4320 ]' _ "$T/retrato-4k.jpg"
+fi
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

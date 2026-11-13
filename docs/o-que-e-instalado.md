@@ -29,7 +29,7 @@ navegador ou contenha um caminho `/home/<usuário>` fixo é bloqueado.
 ## O que é preservado
 
 - **Apps fixados no dock**: os que a pessoa já tinha continuam, na mesma ordem. Os do setup
-  (Arquivos, Calendário, Console...) só entram no fim se ainda não estiverem lá.
+  (Arquivos, Console, Programas, Texto, Calculadora) só entram no fim se ainda não estiverem lá.
 - O papel de parede atual
 
 ## Desfazer

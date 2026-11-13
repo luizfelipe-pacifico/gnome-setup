@@ -52,6 +52,7 @@ checa "dock mantém os apps já fixados" bash -c '
 
 # 2026-11-13: o Monitor de Temperatura era fixado no dock sozinho. O setup só fixa apps
 # nativos do GNOME; apps do repositório (local.*, io.github.*) nunca entram no dock sozinhos.
+# 2026-11-13: o Calendário também não pode ser fixado sozinho.
 checa "dock sem apps do repositório fixados" bash -c '
   ! grep -E "^favorite-apps=" gnome/configuracoes.ini | grep -qE "local\.|io\.github\.|MonitorTemp"'
 

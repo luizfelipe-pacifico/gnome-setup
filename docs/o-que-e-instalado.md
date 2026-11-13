@@ -26,6 +26,12 @@ ferramentas e visual; nada da conta ou da máquina de quem mantém o repositóri
 Essas regras são verificadas pelos [testes de regressão](testes.md): um push que instale um
 navegador ou contenha um caminho `/home/<usuário>` fixo é bloqueado.
 
+## O que é preservado
+
+- **Apps fixados no dock**: os que a pessoa já tinha continuam, na mesma ordem. Os do setup
+  (Arquivos, Calendário, Console...) só entram no fim se ainda não estiverem lá.
+- O papel de parede atual
+
 ## Desfazer
 
 - `pacman.conf` e a lista de espelhos ganham uma cópia `*.antes-gnome-setup` antes de mudar

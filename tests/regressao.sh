@@ -45,6 +45,11 @@ checa "escolha de aparência só uma vez" bash -c '
   grep -q "escolha-inicial-feita" setup.sh &&
   grep -B3 "escolher-tema.desktop\" <<" setup.sh | grep -q "ESCOLHA_FEITA"'
 
+# 2026-11-13: o dconf load trocava os apps fixados no dock pelos do setup. Os da pessoa ficam.
+checa "dock mantém os apps já fixados" bash -c '
+  grep -B3 "dconf load / < \"\$REPO_DIR/gnome/configuracoes.ini\"" setup.sh | grep -q "FIXADOS_ANTES=" &&
+  grep -q "antes + \[a for a in setup if a not in antes\]" setup.sh'
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

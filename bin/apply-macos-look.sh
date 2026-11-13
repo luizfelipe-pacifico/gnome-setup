@@ -335,8 +335,12 @@ URL=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=$LAMP&shell_
 if [ -n "$URL" ]; then
   TMP=$(mktemp -d)
   curl -fsSL "https://extensions.gnome.org$URL" -o "$TMP/lamp.zip"
-  gnome-extensions install --force "$TMP/lamp.zip"
-  rm -rf "$TMP"
+  # Para todos os usuários (a cópia antiga no home teria prioridade)
+  E=/usr/local/share/gnome-shell/extensions/$LAMP
+  sudo rm -rf "$E" && sudo install -d "$E" && sudo unzip -qo "$TMP/lamp.zip" -d "$E"
+  [ -d "$E/schemas" ] && sudo glib-compile-schemas "$E/schemas"
+  sudo chmod -R a+rX "$E"
+  rm -rf "$TMP" "$HOME/.local/share/gnome-shell/extensions/$LAMP"
 else
   echo "Aviso: efeito de minimizar não tem versão para o GNOME $SHELL_VER, pulando."
 fi

@@ -33,6 +33,10 @@ Já tem um Arch Linux (ou derivado) com GNOME e quer só o visual? Este comando 
 bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/estilo.sh)
 ```
 
+Vale para o **sistema todo**: todas as contas do computador são atualizadas (quem já escolheu
+um estilo fica com o seu; quem nunca escolheu recebe o estilo de quem rodou), e contas criadas
+depois e a tela de login recebem o mesmo estilo como padrão.
+
 No fim a Aparência abre para você escolher o estilo. Saia e entre na sessão para o dock e o
 menu do pé do GNOME aparecerem. Rodar de novo atualiza.
 

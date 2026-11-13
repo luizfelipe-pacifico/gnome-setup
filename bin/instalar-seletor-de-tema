@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Comando de estilização: instala a Aparência (estilo Apple ou GNOME), o app Firewall e os
-# componentes do estilo Apple, sem rodar o setup inteiro. Funciona em qualquer Arch Linux
+# componentes do estilo Apple, sem rodar o setup inteiro. Vale para o sistema todo: todas as
+# contas do computador, contas criadas depois e a tela de login. Funciona em qualquer Arch Linux
 # (ou derivado) com GNOME. Rode como seu usuário, sem sudo: ele pede a senha quando precisa.
 #   bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/estilo.sh)
 # ou, com o repositório baixado:  bin/instalar-seletor-de-tema
@@ -22,10 +23,11 @@ fi
 
 echo "==> Copiando o app para o sistema"
 sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos \
+  bin/aparencia-usuario bin/aparencia-todos-usuarios \
   bin/icone-calendario bin/enxugar-sistema bin/vicinae-leve /usr/local/bin/
 sudo install -Dm 644 -t /usr/local/lib/systemd/user \
   sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}
-systemctl --user daemon-reload && systemctl --user enable icone-calendario.timer
+systemctl --user daemon-reload || true
 sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
 # O nome do atalho é o ID do app: assim o dock mostra o ícone da Aparência quando ela está aberta
 sudo install -Dm 644 applications/local.seletor.tema.desktop /usr/local/share/applications/local.seletor.tema.desktop
@@ -57,56 +59,10 @@ sudo gtk-update-icon-cache -q -t /usr/local/share/icons/hicolor 2>/dev/null || t
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
-echo "==> Dock e menu do pé do GNOME (onde fica o Aparência…)"
-SHELL_VER=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
-extensao() {
-  local url tmp
-  url=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=$1&shell_version=$SHELL_VER" |
-        python3 -c 'import json,sys; print(json.load(sys.stdin)["download_url"])' 2>/dev/null) ||
-    { echo "  $1 não tem versão para o GNOME $SHELL_VER"; return 0; }
-  tmp=$(mktemp -d)
-  curl -fsSL "https://extensions.gnome.org$url" -o "$tmp/ext.zip" && gnome-extensions install --force "$tmp/ext.zip"
-  rm -rf "$tmp"
-}
-for uuid in dash-to-dock@micxgx.gmail.com kiwimenu@kemma; do
-  # Já instalada (pelo usuário ou por pacote): fica como está
-  [ -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ] || [ -d "/usr/share/gnome-shell/extensions/$uuid" ] ||
-    extensao "$uuid"
-done
-python3 - <<'LIGAR'
-from gi.repository import Gio
-s = Gio.Settings.new("org.gnome.shell")
-s.set_boolean("disable-user-extensions", False)
-for uuid in ("dash-to-dock@micxgx.gmail.com", "kiwimenu@kemma"):
-    s.set_strv("disabled-extensions", [u for u in s.get_strv("disabled-extensions") if u != uuid])
-    if uuid not in s.get_strv("enabled-extensions"):
-        s.set_strv("enabled-extensions", s.get_strv("enabled-extensions") + [uuid])
-Gio.Settings.sync()
-LIGAR
-
-echo "==> Extensões do repositório, temas do Vicinae e ícone do Calendário"
-mkdir -p "$HOME/.local/share/gnome-shell/extensions"
-for d in extensoes/*/; do
-  rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
-  cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
-  [ -d "$d/schemas" ] && glib-compile-schemas "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")/schemas"
-done
-install -Dm644 -t "$HOME/.local/share/vicinae/themes" vicinae/themes/*.toml
-/usr/local/bin/icone-calendario
-
-K=$(ls -d "$HOME"/.local/share/gnome-shell/extensions/kiwimenu@kemma/schemas 2>/dev/null) &&
-  for kv in "custom-menu-label|'Aparência…'" "custom-menu-command|'/usr/local/bin/seletor-de-tema'" \
-            "custom-menu-icon|'/usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg'" \
-            "custom-menu-enabled|true"; do
-    gsettings --schemadir "$K" set org.gnome.shell.extensions.kiwimenu "${kv%%|*}" "${kv#*|}"
-  done
-
-echo "==> Reaplicando o tema atual"
-/usr/local/bin/seletor-de-tema --reaplicar
+# Extensões, padrão do sistema (contas novas e tela de login) e cada usuário do computador
+/usr/local/bin/aparencia-todos-usuarios
 
 echo "==> Desempenho do que o gnome-setup colocou: menos RAM parado e menos SSD"
-# Busca (Vicinae) leve: sem o motor Node e sem indexar as pastas ocultas
-command -v vicinae >/dev/null && /usr/local/bin/vicinae-leve
 # Partes repetidas do que instalamos (fonte, ponteiro) e cache de pacotes (depois de o tema
 # já pedir a fonte "Inter Variable")
 sudo /usr/local/bin/enxugar-sistema

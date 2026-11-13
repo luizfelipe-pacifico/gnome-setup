@@ -7,6 +7,11 @@ case "$1" in dark) SCHEME=prefer-dark ;; light) SCHEME=default ;; *) echo "modo 
 case "$2" in apple|gnome) ;; *) echo "estilo inválido" >&2; exit 1 ;; esac
 [[ "$3" =~ ^[a-z,-]*$ ]] || { echo "partes inválidas" >&2; exit 1; }
 
+# Sem este perfil o GNOME não lê os padrões do sistema (não apaga um que já exista)
+mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
+[ -f /etc/dconf/profile/user ] || printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
+grep -q '^system-db:local' /etc/dconf/profile/user || echo 'system-db:local' >> /etc/dconf/profile/user
+
 F=/etc/dconf/db/local.d/00-aparencia
 {
   echo "[org/gnome/desktop/interface]"
@@ -34,7 +39,18 @@ F=/etc/dconf/db/local.d/00-aparencia
   fi
   echo
   echo "[org/gnome/shell]"
-  if [ "$2" = apple ]; then echo "enabled-extensions=['blur-my-shell@aunetx']"; else echo "enabled-extensions=@as []"; fi
+  # Dock, menu do pé do GNOME (com o Aparência…) e seleção limpa sempre; vidro e efeito de
+  # minimizar só no estilo Apple
+  BASE="'dash-to-dock@micxgx.gmail.com', 'kiwimenu@kemma', 'selecao-limpa@gnome-setup'"
+  if [ "$2" = apple ]; then
+    echo "enabled-extensions=[$BASE, 'blur-my-shell@aunetx', 'compiz-alike-magic-lamp-effect@hermes83.github.com']"
+  else echo "enabled-extensions=[$BASE]"; fi
+  echo
+  echo "[org/gnome/shell/extensions/kiwimenu]"
+  echo "custom-menu-enabled=true"
+  echo "custom-menu-label='Aparência…'"
+  echo "custom-menu-command='/usr/local/bin/seletor-de-tema'"
+  echo "custom-menu-icon='/usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg'"
   for p in panel dash-to-dock overview appfolder lockscreen; do
     echo
     echo "[org/gnome/shell/extensions/blur-my-shell/$p]"

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Aparência para contas novas
+Comment=No primeiro login de uma conta, aplica a estilização padrão do sistema
+Exec=/usr/local/bin/aparencia-usuario --novo
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-Phase=Applications

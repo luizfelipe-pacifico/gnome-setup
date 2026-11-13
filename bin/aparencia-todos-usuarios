@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Leva a estilização para o sistema todo: extensões instaladas para todos, padrão do sistema
+# (contas novas e tela de login) igual ao tema de quem roda, e cada conta existente atualizada.
+# Quem já escolheu um tema fica com o seu; quem nunca escolheu recebe o tema de quem roda.
+# Rode como seu usuário (usa sudo). Chamado pelo instalar-seletor-de-tema e pelo setup.sh.
+set -u
+REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+EXTS=/usr/local/share/gnome-shell/extensions
+SHELL_VER=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
+
+# Extensão do extensions.gnome.org, instalada para todos os usuários
+extensao() {
+  local url tmp
+  url=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=$1&shell_version=$SHELL_VER" |
+        python3 -c 'import json,sys; print(json.load(sys.stdin)["download_url"])' 2>/dev/null) ||
+    { echo "  $1 não tem versão para o GNOME $SHELL_VER"; return 0; }
+  tmp=$(mktemp -d)
+  if curl -fsSL "https://extensions.gnome.org$url" -o "$tmp/ext.zip"; then
+    sudo rm -rf "${EXTS:?}/$1"
+    sudo install -d "$EXTS/$1" && sudo unzip -qo "$tmp/ext.zip" -d "$EXTS/$1"
+    [ -d "$EXTS/$1/schemas" ] && sudo glib-compile-schemas "$EXTS/$1/schemas"
+    sudo chmod -R a+rX "$EXTS/$1"
+  fi
+  rm -rf "$tmp"
+}
+
+echo "==> Extensões para todos os usuários"
+for uuid in dash-to-dock@micxgx.gmail.com kiwimenu@kemma compiz-alike-magic-lamp-effect@hermes83.github.com; do
+  [ -d "/usr/share/gnome-shell/extensions/$uuid" ] || extensao "$uuid"   # pacote do sistema: fica
+done
+for d in "$REPO_DIR"/extensoes/*/; do
+  u=$(basename "$d")
+  sudo rm -rf "${EXTS:?}/$u" && sudo cp -r "$d" "$EXTS/$u"
+  [ -d "$EXTS/$u/schemas" ] && sudo glib-compile-schemas "$EXTS/$u/schemas"
+  sudo chmod -R a+rX "$EXTS/$u"
+done
+sudo install -Dm644 -t /usr/local/share/gnome-setup/vicinae-themes "$REPO_DIR"/vicinae/themes/*.toml
+sudo systemctl --global enable icone-calendario.timer >/dev/null 2>&1 || true
+sudo install -Dm644 "$REPO_DIR/sistema/etc/xdg/autostart/aparencia-novo-usuario.desktop" \
+  /etc/xdg/autostart/aparencia-novo-usuario.desktop
+
+TEMA=$(/usr/local/bin/seletor-de-tema --atual)
+echo "==> Padrão do sistema (contas novas e tela de login): $TEMA"
+sudo /usr/local/bin/aparencia-aplicar-todos "${TEMA#*-}" "${TEMA%-*}" "$(/usr/local/bin/seletor-de-tema --partes)"
+
+echo "==> Atualizando cada usuário"
+while IFS=: read -r u _ uid _ _ home shell; do
+  [ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] && [ -d "$home" ] || continue
+  case "$shell" in */nologin|*/false) continue ;; esac
+  echo "  $u"
+  if [ "$u" = "$(id -un)" ]; then
+    /usr/local/bin/aparencia-usuario "$TEMA"
+  elif [ -S "/run/user/$uid/bus" ]; then   # conta com a sessão aberta: usa a sessão dela
+    (cd / && sudo -u "$u" -H env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+       XDG_RUNTIME_DIR="/run/user/$uid" /usr/local/bin/aparencia-usuario "$TEMA")
+  else
+    (cd / && sudo -u "$u" -H dbus-run-session -- /usr/local/bin/aparencia-usuario "$TEMA")
+  fi >/dev/null 2>&1 || echo "  ! não deu para atualizar $u"
+done < /etc/passwd

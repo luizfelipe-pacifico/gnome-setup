@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Seletor de aparência: estilo Apple (macOS) claro/escuro ou GNOME padrão
-# Uso: seletor-de-tema [--reaplicar | --atual | --tema apple-dark|apple-light|gnome-dark|gnome-light]
+# Uso: seletor-de-tema [--reaplicar | --atual | --partes | --tema apple-dark|apple-light|gnome-dark|gnome-light]
 import glob
 import hashlib
 import json
@@ -59,6 +59,7 @@ CURSOR = "macOS"
 ICONS = "MacApps"  # só ícones de apps estilo Mac; barra e símbolos seguem os do GNOME
 FONT = "Inter Variable"  # versão variável: um arquivo de 1,7 MB com todos os pesos
 EXT_DIRS = [os.path.expanduser("~/.local/share/gnome-shell/extensions"),
+            "/usr/local/share/gnome-shell/extensions",  # instaladas para todos pelo gnome-setup
             "/usr/share/gnome-shell/extensions"]
 
 
@@ -346,7 +347,10 @@ def apply_settings(t):
         ident = f"{schema}{path or ''}:{key}"
         current = s.get_value(key)
         if t["apple"]:
-            originals.setdefault(ident, current.print_(False))  # só na 1ª vez: é o valor do usuário
+            if ident not in originals:  # só na 1ª vez: é o valor do usuário
+                # Sem valor próprio, guarda o padrão do GNOME (não o do sistema, que pode já ser Apple)
+                original = s.get_user_value(key) or s.props.settings_schema.get_key(key).get_default_value()
+                originals[ident] = original.print_(False)
             s.set_value(key, GLib.Variant(typ, value(t["dark"])))
         elif ident in originals:
             saved = originals.pop(ident)
@@ -806,6 +810,8 @@ if __name__ == "__main__":
         apply_theme(THEMES[current_theme()])  # usado pelo instalar-seletor-de-tema
     elif sys.argv[1:2] == ["--atual"]:
         print(current_theme())
+    elif sys.argv[1:2] == ["--partes"]:  # partes com vidro, para o aparencia-aplicar-todos
+        print(",".join(p for p, _t, _i in GLASS_PARTS if glass_installed() and blur_get(p)))
     elif sys.argv[1:2] == ["--tema"] and sys.argv[2:3] and sys.argv[2] in THEMES:
         apply_theme(THEMES[sys.argv[2]])
     else:

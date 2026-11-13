@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Aplica a estilização na conta de quem roda: dock, menu do pé do GNOME (com o Aparência…),
+# vidro, temas do Vicinae, ícone do Calendário e o tema. Chamado pelo aparencia-todos-usuarios
+# para cada usuário, e no login de contas novas (/etc/xdg/autostart/aparencia-novo-usuario.desktop).
+# Uso: aparencia-usuario <tema>   tema para quem ainda não escolheu (apple-dark, gnome-light...);
+#                                 quem já escolheu fica com o seu
+#      aparencia-usuario --novo   só se a conta nunca recebeu a estilização (usa o padrão do sistema)
+set -u
+CONFIG="$HOME/.config/seletor-de-tema/originais.json"
+EXTS=/usr/local/share/gnome-shell/extensions
+if [ "${1:-}" = --novo ]; then
+  [ -f "$CONFIG" ] && exit 0
+  TEMA=$(/usr/local/bin/seletor-de-tema --atual)   # vem do padrão do sistema (dconf)
+else
+  TEMA=${1:?tema}
+fi
+
+# Extensões do repositório ficam no sistema; cópias antigas no home teriam prioridade
+for d in "$EXTS"/*@gnome-setup; do [ -d "$d" ] && rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"; done
+
+python3 - <<'LIGAR'
+from gi.repository import Gio
+s = Gio.Settings.new("org.gnome.shell")
+s.set_boolean("disable-user-extensions", False)
+for uuid in ("dash-to-dock@micxgx.gmail.com", "kiwimenu@kemma", "selecao-limpa@gnome-setup"):
+    s.set_strv("disabled-extensions", [u for u in s.get_strv("disabled-extensions") if u != uuid])
+    if uuid not in s.get_strv("enabled-extensions"):
+        s.set_strv("enabled-extensions", s.get_strv("enabled-extensions") + [uuid])
+Gio.Settings.sync()
+LIGAR
+
+# Menu do pé do GNOME com o Aparência…
+K=$(ls -d "$HOME/.local/share/gnome-shell/extensions/kiwimenu@kemma/schemas" "$EXTS/kiwimenu@kemma/schemas" 2>/dev/null | head -1)
+[ -n "$K" ] && for kv in "custom-menu-label|'Aparência…'" "custom-menu-command|'/usr/local/bin/seletor-de-tema'" \
+                         "custom-menu-icon|'/usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg'" \
+                         "custom-menu-enabled|true"; do
+  gsettings --schemadir "$K" set org.gnome.shell.extensions.kiwimenu "${kv%%|*}" "${kv#*|}"
+done
+
+# Vidro: o padrão do estilo Apple só na primeira vez (depois vale o que a pessoa escolheu)
+if [ ! -f "$CONFIG" ]; then
+  SD=/usr/share/gnome-shell/extensions/blur-my-shell@aunetx/schemas
+  [ -d "$SD" ] || SD=/usr/share/glib-2.0/schemas
+  b(){ gsettings --schemadir "$SD" set "org.gnome.shell.extensions.blur-my-shell.$1" "$2" "$3" 2>/dev/null || true; }
+  b panel blur true;        b panel static-blur true
+  b dash-to-dock blur true; b dash-to-dock static-blur true
+  b overview blur true;     b overview style-components 3
+  b appfolder blur true;    b appfolder style-dialogs 3
+  b lockscreen blur true
+  b applications blur false
+fi
+
+install -Dm644 -t "$HOME/.local/share/vicinae/themes" /usr/local/share/gnome-setup/vicinae-themes/*.toml 2>/dev/null
+command -v vicinae >/dev/null && /usr/local/bin/vicinae-leve >/dev/null
+/usr/local/bin/icone-calendario
+
+if [ -f "$CONFIG" ]; then /usr/local/bin/seletor-de-tema --reaplicar
+else /usr/local/bin/seletor-de-tema --tema "$TEMA"; fi

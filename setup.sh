@@ -213,7 +213,8 @@ ok "modos de energia (Economia/Equilibrado/Desempenho) e GameMode ligando o Dese
 etapa "Instalando meus apps"
 APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp projetos-git
       gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar firewall
-      firewall-aplicar limpeza-sistema icone-calendario enxugar-sistema vicinae-leve)
+      firewall-aplicar limpeza-sistema icone-calendario enxugar-sistema vicinae-leve
+      aparencia-usuario aparencia-todos-usuarios)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
 for d in local.seletor.tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
          io.github.luizfelipe.AppGridOrder local.controle.zram local.luizfelipe.Firewall; do
@@ -249,17 +250,9 @@ extensao() {
   rm -rf "$tmp"
   ok "$1"
 }
-extensao dash-to-dock@micxgx.gmail.com
-extensao kiwimenu@kemma
 extensao appindicatorsupport@rgcjonas.gmail.com
-# Minhas extensões (vêm do próprio repositório)
-for d in "$REPO_DIR"/extensoes/*/; do
-  mkdir -p "$HOME/.local/share/gnome-shell/extensions"
-  rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
-  cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
-  [ -d "$d/schemas" ] && glib-compile-schemas "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")/schemas"
-  ok "$(basename "$d")"
-done
+# Dock, menu do pé do GNOME, efeito de minimizar e as minhas extensões ficam para todos os
+# usuários: o aparencia-todos-usuarios instala (mais abaixo)
 
 # Configurações do usuário precisam do D-Bus da sessão (fora do GNOME, cria um temporário)
 sessao() { if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then "$@"; else dbus-run-session "$@"; fi; }
@@ -279,6 +272,9 @@ systemctl --user daemon-reload 2>/dev/null || true
 systemctl --user enable icone-calendario.timer 2>/dev/null || true         # data de hoje no ícone
 /usr/local/bin/icone-calendario || true
 ok "energia, touchpad, dock, pastas de apps, atalhos e extensões"
+
+etapa "Estilização para todos os usuários (contas atuais, contas novas e tela de login)"
+sessao /usr/local/bin/aparencia-todos-usuarios || aviso "a estilização de algum usuário falhou"
 
 # No primeiro login depois de reiniciar, abre o Seletor de Tema para escolher a aparência
 mkdir -p "$HOME/.config/autostart"

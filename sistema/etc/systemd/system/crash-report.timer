@@ -1,9 +1,9 @@
 [Unit]
-Description=Verificação periódica de crashes sem relatório
+Description=Verificação de hora em hora de crashes sem relatório (o .path já reage na hora)
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=15min
+OnUnitActiveSec=1h
 
 [Install]
 WantedBy=timers.target

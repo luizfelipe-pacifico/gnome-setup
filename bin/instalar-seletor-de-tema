@@ -8,7 +8,7 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 
 echo "==> Copiando o app para o sistema"
 sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos \
-  bin/icone-calendario bin/enxugar-sistema /usr/local/bin/
+  bin/icone-calendario bin/enxugar-sistema bin/vicinae-leve /usr/local/bin/
 sudo install -Dm 644 -t /usr/local/lib/systemd/user \
   sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}
 systemctl --user daemon-reload && systemctl --user enable icone-calendario.timer
@@ -44,24 +44,10 @@ K=$(ls -d "$HOME"/.local/share/gnome-shell/extensions/kiwimenu@kemma/schemas 2>/
 echo "==> Reaplicando o tema atual"
 /usr/local/bin/seletor-de-tema --reaplicar
 
-echo "==> Desempenho: menos RAM parado e menos SSD"
-# Busca (Vicinae) sem o motor Node das extensões em TypeScript: ~70 MB a menos
-if command -v vicinae >/dev/null; then
-  mkdir -p "$HOME/.config/systemd/user/vicinae.service.d"
-  printf '[Service]\nExecStart=\nExecStart=%s server --replace --no-extension-runtime\n' \
-    "$(command -v vicinae)" > "$HOME/.config/systemd/user/vicinae.service.d/desempenho.conf"
-  systemctl --user daemon-reload
-fi
-# Programas fora da busca da visão geral: senão ele fica rodando parado (~200 MB)
-python3 - <<'EOF'
-import ast, subprocess
-k = ["org.gnome.desktop.search-providers", "disabled"]
-atual = ast.literal_eval(subprocess.run(["gsettings", "get", *k], capture_output=True,
-                                        text=True).stdout.replace("@as ", ""))
-if "org.gnome.Software.desktop" not in atual:
-    subprocess.run(["gsettings", "set", *k, str(atual + ["org.gnome.Software.desktop"])])
-EOF
-# Idiomas e documentação que não se usam, fonte repetida e cache de pacotes (depois de o tema
+echo "==> Desempenho do que o gnome-setup colocou: menos RAM parado e menos SSD"
+# Busca (Vicinae) leve: sem o motor Node e sem indexar as pastas ocultas
+/usr/local/bin/vicinae-leve
+# Partes repetidas do que instalamos (fonte, ponteiro) e cache de pacotes (depois de o tema
 # já pedir a fonte "Inter Variable")
 sudo /usr/local/bin/enxugar-sistema
 echo

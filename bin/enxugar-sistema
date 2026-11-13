@@ -1,46 +1,27 @@
 #!/usr/bin/env bash
-# Deixa o sistema ocupar menos SSD sem perder nada que se use (roda como root):
-#  - pacman passa a não instalar traduções e ajuda de outros idiomas, documentação de
-#    desenvolvedor, o ponteiro branco do Mac e a cópia repetida da fonte Inter (NoExtract);
-#    mantém inglês, português e o idioma do sistema
-#  - apaga o que já estava instalado desses tipos
-#  - cache de pacotes: guarda só a última versão de cada um (para voltar se der erro)
+# Deixa o que o gnome-setup instala ocupando o mínimo de SSD (roda como root). Não mexe em nada
+# que vem com o GNOME ou com o sistema:
+#  - pacman não instala as partes repetidas do que colocamos: o ponteiro branco do Mac (usamos o
+#    preto) e a coleção fixa da fonte Inter (a versão variável, 1,7 MB, já tem todos os pesos)
+#  - cache de pacotes: guarda só a última versão de cada um (para voltar se der erro), como a
+#    limpeza semanal já faz
 # Uso: sudo enxugar-sistema        (pode rodar de novo quando quiser; só faz o que falta)
 set -u
 [ "$EUID" -eq 0 ] || { echo "Rode com sudo."; exit 1; }
 
 antes=$(df --output=used -B1M / | tail -1)
 
-# Idiomas que ficam: inglês, português e o do sistema (ex.: es de es_ES.UTF-8)
-SISTEMA=$(sed -n 's/^LANG=\([a-z]*\).*/\1/p' /etc/locale.conf 2>/dev/null)
-FICAM=(C en pt)
-case "$SISTEMA" in ""|C|en|pt) ;; *) FICAM+=("$SISTEMA") ;; esac
-fica() { local n=$1 l; for l in "${FICAM[@]}"; do [[ "$n" == "$l" || "$n" == "$l"_* || "$n" == "$l"@* ]] && return 0; done; return 1; }
-
 # --- NoExtract no pacman.conf (entre marcadores, para atualizar sem duplicar)
 PC=/etc/pacman.conf
-manter() { local base=$1 l; for l in "${FICAM[@]}"; do printf ' !%s/%s*' "$base" "$l"; done; }
-BLOCO="# gnome-setup: não instalar o que não se usa (menos SSD)
-NoExtract = usr/share/locale/*$(manter usr/share/locale) !usr/share/locale/locale.alias
-NoExtract = usr/share/help/*$(manter usr/share/help)
-NoExtract = usr/share/man/* !usr/share/man/man*
-NoExtract = usr/share/doc/* usr/share/gtk-doc/*
+BLOCO="# gnome-setup: partes repetidas do que o gnome-setup instala
 NoExtract = usr/share/icons/macOS-White/* usr/share/fonts/inter/Inter.ttc
 # gnome-setup: fim"
-sed -i '/^# gnome-setup: não instalar/,/^# gnome-setup: fim/d' "$PC"
-# Entra logo depois de [options]
+sed -i '/^# gnome-setup: /,/^# gnome-setup: fim/d' "$PC"
 awk -v bloco="$BLOCO" '{ print } /^\[options\]/ && !feito { print bloco; feito = 1 }' "$PC" > "$PC.novo" &&
   mv "$PC.novo" "$PC"
 
-# --- Apaga o que já estava instalado
-for d in /usr/share/locale/*/ /usr/share/help/*/; do
-  fica "$(basename "$d")" || rm -rf "$d"
-done
-for d in /usr/share/man/*/; do
-  case "$(basename "$d")" in man*) ;; *) rm -rf "$d" ;; esac
-done
-rm -rf /usr/share/doc/* /usr/share/gtk-doc/* /usr/share/icons/macOS-White
-# Inter: a versão variável (1,7 MB) já tem todos os pesos; a coleção fixa (13 MB) é repetida
+# --- Apaga o que já estava instalado dessas partes
+rm -rf /usr/share/icons/macOS-White
 if [ -f /usr/share/fonts/inter/InterVariable.ttf ] && [ -f /usr/share/fonts/inter/Inter.ttc ]; then
   rm -f /usr/share/fonts/inter/Inter.ttc && fc-cache -f /usr/share/fonts/inter
 fi
@@ -52,4 +33,4 @@ paccache -qruk0
 rm -rf /var/cache/pacman/pkg/download-* 2>/dev/null
 
 depois=$(df --output=used -B1M / | tail -1)
-echo "Pronto: $((antes - depois)) MB liberados. Idiomas mantidos: ${FICAM[*]}"
+echo "Pronto: $((antes - depois)) MB liberados."

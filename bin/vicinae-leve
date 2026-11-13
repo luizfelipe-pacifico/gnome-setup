@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Deixa o Vicinae (a busca do Super+Espaço) leve, sem perder nada que se perceba:
+ - sem o motor Node das extensões em TypeScript (~70 MB de RAM a menos)
+ - o índice de arquivos ignora as pastas ocultas da pasta pessoal (dados de apps, caches,
+   extensões do VS Code, Flatpak...), que eram ~97% do índice; suas pastas continuam na busca
+Roda como o usuário. Pode rodar de novo: atualiza a lista de pastas ocultas.
+  vicinae-leve            aplica
+  vicinae-leve --refazer  aplica e refaz o índice do zero (libera o espaço do índice antigo)
+"""
+import glob
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+CONFIG = os.path.expanduser("~/.config/vicinae")
+DESEMPENHO = os.path.join(CONFIG, "desempenho.json")
+DROPIN = os.path.expanduser("~/.config/systemd/user/vicinae.service.d/desempenho.conf")
+INDICE = os.path.expanduser("~/.cache/vicinae/file-indexer")
+
+
+def ler_settings(path):
+    """settings.json do Vicinae tem comentários '//' no topo: separa e devolve (topo, json)."""
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        text = '{\n  "$schema": "https://vicinae.com/schemas/config.json"\n}\n'
+    linhas = text.splitlines(True)
+    topo = "".join(l for l in linhas if l.lstrip().startswith("//"))
+    return topo, json.loads("".join(l for l in linhas if not l.lstrip().startswith("//")))
+
+
+def main():
+    vicinae = shutil.which("vicinae")
+    if not vicinae or not os.path.isdir(CONFIG):
+        return
+
+    # Sem o motor Node (o servidor sobe com --no-extension-runtime)
+    os.makedirs(os.path.dirname(DROPIN), exist_ok=True)
+    with open(DROPIN, "w") as f:
+        f.write("# Sem o motor Node do Vicinae (só serve para extensões em TypeScript): ~70 MB a menos\n"
+                f"[Service]\nExecStart=\nExecStart={vicinae} server --replace --no-extension-runtime\n")
+
+    # Pastas ocultas fora do índice de arquivos
+    ocultas = sorted(p for p in glob.glob(os.path.expanduser("~/.*")) if os.path.isdir(p)
+                     and not os.path.islink(p))
+    with open(DESEMPENHO, "w") as f:
+        json.dump({"providers": {"files": {"preferences": {"excludedIndexingPaths": ocultas}}}},
+                  f, indent=2, ensure_ascii=False)
+
+    settings = os.path.join(CONFIG, "settings.json")
+    topo, cfg = ler_settings(settings)
+    imports = cfg.setdefault("imports", [])
+    if DESEMPENHO not in imports:
+        imports.insert(0, DESEMPENHO)
+        with open(settings, "w") as f:
+            f.write(topo + ("\n" if topo else "") + json.dumps(cfg, indent=3, ensure_ascii=False) + "\n")
+
+    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    if "--refazer" in sys.argv:
+        subprocess.run(["systemctl", "--user", "stop", "vicinae.service"], check=False)
+        # KillMode=process deixa os filhos vivos: fecha o indexador e o motor Node antigos
+        subprocess.run(["pkill", "-u", str(os.getuid()), "-f", "vicinae-(file-indexer|ext-runtime)"],
+                       check=False)
+        shutil.rmtree(INDICE, ignore_errors=True)
+    subprocess.run(["systemctl", "--user", "restart", "vicinae.service"], check=False)
+
+
+if __name__ == "__main__":
+    main()

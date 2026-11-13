@@ -109,7 +109,7 @@ os próprios botões.
   no azul do Developer Edition. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
-- Arquivos por dentro como o Finder, espaçoso e limpo: pastas no estilo Mac, barra lateral com
+- Arquivos por dentro como o Finder, espaçoso e limpo: pastas finas e claras como as do Mac, barra lateral com
   ícones na cor de destaque, na grade o nome selecionado vira uma pílula azul e na lista a seleção
   fica azul inteira
 - dock embaixo e centralizada, com pontinho nos apps abertos

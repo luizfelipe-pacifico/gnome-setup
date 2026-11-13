@@ -156,22 +156,22 @@ GTK4_CSS = "\n".join([
     "windowcontrols { border-spacing: 8px; }",
     "windowcontrols > button { min-width: 14px; min-height: 14px; padding: 0; margin: 0;"
     " background: none; box-shadow: none; }",
-    "windowcontrols > button > image { padding: 1px; -gtk-icon-size: 12px; border-radius: 100%;"
+    "windowcontrols > button > image { padding: 1px; -gtk-icon-size: 12px; min-width: 12px;"
+    " min-height: 12px; border-radius: 100%;"
     " color: transparent; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }",
     *(f"windowcontrols > button.{b} > image {{ background-color: {c}; }}"
       for b, c in TRAFFIC_LIGHTS.items()),
     "windowcontrols:hover > button > image { color: rgba(0, 0, 0, 0.55); }",
     "windowcontrols > button:active > image { filter: brightness(0.8); }",
     "windowcontrols:not(:hover) > button:backdrop > image { background-color: alpha(gray, 0.45); }",
-    # Arquivos como o Finder, com bastante respiro. Barra lateral: itens arredondados e espaçados,
-    # ícones sempre na cor de destaque, seleção cinza clara
-    ".nautilus-window .navigation-sidebar { padding: 8px 0; }",
-    ".nautilus-window .navigation-sidebar > row { border-radius: 8px; margin: 2px 12px;"
-    " min-height: 36px; padding: 0 10px; }",
-    ".nautilus-window .navigation-sidebar > row image { color: @accent_color; }",
-    ".nautilus-window .navigation-sidebar > row:hover { background-color: alpha(currentColor, 0.05); }",
-    ".nautilus-window .navigation-sidebar > row:selected { background-color: alpha(currentColor, 0.1);"
-    " color: inherit; }",
+    # Arquivos como o Finder, com bastante respiro. Barra lateral (o nó "placessidebar" do Nautilus):
+    # itens arredondados e espaçados, ícones sempre na cor de destaque, seleção cinza clara
+    "placessidebar list { padding: 10px 0; }",
+    "placessidebar list > row { border-radius: 8px; margin: 3px 12px; min-height: 38px;"
+    " padding: 0 10px; }",
+    "placessidebar list > row image { color: @accent_color; }",
+    "placessidebar list > row:hover { background-color: alpha(currentColor, 0.05); }",
+    "placessidebar list > row:selected { background-color: alpha(currentColor, 0.1); color: inherit; }",
     # Grade: o item não ganha um bloco azul; o ícone ganha um fundo cinza arredondado e o nome
     # vira uma pílula azul com texto branco
     ".nautilus-grid-view gridview { padding: 32px; border-spacing: 22px; }",

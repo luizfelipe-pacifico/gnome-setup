@@ -23,14 +23,14 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 #    Vicinae (lua no céu escuro)
 #  - Firefox: a raposa no globo de sempre, no azul do Developer Edition e sem moldura
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
-#  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
+#  - pastas finas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
 #  - lixeira clara no tema claro e escura no tema escuro (tema "MacApps-dark", que herda o MacApps)
 #  - Relógios, Mapas, Configurações, Fontes, Logs, Papers e Apostrophe: ícone do GNOME
 # Bateria, rede, volume, símbolos e apps de fora continuam como são. Só o código-fonte dos
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=14
+MAC_VERSAO=15
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
@@ -180,6 +180,48 @@ VICINAE = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
 """
 # Firefox: a raposa no globo, no azul do Developer Edition (logo do WhiteSur sem a moldura branca)
 FIREFOX = ["firefox", "firefox-developer-edition", "org.mozilla.firefox"]
+# Pastas dentro do Arquivos: desenho próprio, fino e claro como as do macOS (aba fina, frente lisa
+# e símbolo em traço fino). Substituem as do WhiteSur, que ficavam pesadas.
+PASTA = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="tras" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5aa9f2"/><stop offset="1" stop-color="#3f8fe0"/>
+    </linearGradient>
+    <linearGradient id="frente" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ccbff"/><stop offset="1" stop-color="#5eaef7"/>
+    </linearGradient>
+    <filter id="sombra" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#0b3a7a" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <path d="M12 32 Q12 26 18 26 H46 Q50 26 52.5 28.8 L55 31.6 Q57.5 34.4 61.5 34.4 H110 Q116 34.4 116 40.4 V98 Q116 104 110 104 H18 Q12 104 12 98 Z" fill="url(#tras)"/>
+  <rect x="12" y="41" width="104" height="63" rx="6" fill="url(#frente)" filter="url(#sombra)"/>
+  <rect x="12" y="41" width="104" height="1.2" fill="#fff" opacity="0.55"/>
+  {glifo}
+</svg>
+"""
+# símbolos em traço fino, centrados em (64, 73)
+G = '<g fill="none" stroke="#2b78d0" stroke-opacity="0.6" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">{}</g>'
+GLIFOS = {
+    "folder": "",
+    "user-home": G.format('<path d="M50 74 L64 62 L78 74"/><path d="M54 71 V86 H74 V71"/><path d="M61 86 V78 H67 V86"/>'),
+    "user-desktop": G.format('<rect x="48" y="60" width="32" height="21" rx="2.5"/><path d="M58 88 H70 M64 81 V88"/>'),
+    "folder-documents": G.format('<path d="M54 58 H68 L76 66 V88 H54 Z"/><path d="M68 58 V66 H76"/><path d="M59 74 H71 M59 80 H71"/>'),
+    "folder-download": G.format('<path d="M64 58 V82"/><path d="M54 73 L64 83 L74 73"/><path d="M52 89 H76"/>'),
+    "folder-music": G.format('<path d="M60 84 V62 L76 58 V80"/><circle cx="56" cy="84" r="4"/><circle cx="72" cy="80" r="4"/>'),
+    "folder-pictures": G.format('<rect x="48" y="60" width="32" height="26" rx="3"/><circle cx="57" cy="68" r="2.6"/><path d="M50 84 L60 75 L67 81 L72 77 L79 83"/>'),
+    "folder-videos": G.format('<rect x="48" y="62" width="32" height="22" rx="3"/><path d="M60 68 L70 73 L60 78 Z"/>'),
+    "folder-templates": G.format('<rect x="52" y="58" width="24" height="30" rx="2.5"/><path d="M57 66 H71 M57 72 H71 M57 78 H65"/>'),
+    "folder-publicshare": G.format('<circle cx="58" cy="67" r="5"/><circle cx="72" cy="69" r="4"/><path d="M48 86 Q48 76 58 76 Q68 76 68 86 M70 77 Q80 77 80 86"/>'),
+    "user-bookmarks": G.format('<path d="M56 58 H72 V88 L64 81 L56 88 Z"/>'),
+    "folder-code": G.format('<path d="M58 64 L49 73 L58 82 M70 64 L79 73 L70 82"/>'),
+    "network-workgroup": G.format('<circle cx="64" cy="73" r="14"/><path d="M50 73 H78 M64 59 Q56 73 64 87 Q72 73 64 59"/>'),
+}
+# outros nomes que o GNOME pede para as mesmas pastas
+APELIDOS = {"folder-download": ["folder-downloads"], "folder-documents": ["folder-document"],
+            "folder-pictures": ["folder-images"], "folder-videos": ["folder-video"],
+            "folder-publicshare": ["folder-public"], "user-bookmarks": ["folder-bookmark"],
+            "folder-code": ["folder-development", "folder-projects"], "folder": ["folder-blue"]}
 LIXEIRA = ["user-trash", "user-trash-full"]
 
 
@@ -246,6 +288,10 @@ for name in sorted(nomes):
         continue
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")
+for nome, glifo in GLIFOS.items():
+    for n in [nome] + APELIDOS.get(nome, []):
+        with open(f"{OUT}/places/scalable/{n}.svg", "w") as f:
+            f.write(PASTA.replace("{glifo}", glifo))
 PY
   cat > "$TMP/MacApps/index.theme" <<'EOF'
 [Icon Theme]

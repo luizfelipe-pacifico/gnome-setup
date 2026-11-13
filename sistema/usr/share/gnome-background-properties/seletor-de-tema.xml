@@ -5,8 +5,8 @@
 <wallpapers>
   <wallpaper deleted="false">
     <name>gnome-setup</name>
-    <filename>/usr/share/backgrounds/seletor-de-tema/claro.jpg</filename>
-    <filename-dark>/usr/share/backgrounds/seletor-de-tema/escuro.jpg</filename-dark>
+    <filename>/usr/share/backgrounds/seletor-de-tema/gnome-setup-claro.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/seletor-de-tema/gnome-setup-escuro.jpg</filename-dark>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#3465a4</pcolor>
@@ -14,7 +14,7 @@
   </wallpaper>
   <wallpaper deleted="false">
     <name>Montanhas no pôr do sol</name>
-    <filename>/usr/share/backgrounds/seletor-de-tema/montanhas.jpg</filename>
+    <filename>/usr/share/backgrounds/seletor-de-tema/montanhas-por-do-sol.jpg</filename>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#c27a2c</pcolor>
@@ -22,7 +22,7 @@
   </wallpaper>
   <wallpaper deleted="false">
     <name>Balão nas montanhas</name>
-    <filename>/usr/share/backgrounds/seletor-de-tema/balao.jpg</filename>
+    <filename>/usr/share/backgrounds/seletor-de-tema/balao-nas-montanhas.jpg</filename>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#b0623f</pcolor>
@@ -56,10 +56,42 @@
   </wallpaper>
   <wallpaper deleted="false">
     <name>Paleta vermelha</name>
-    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-vermelho.jpg</filename>
+    <filename>/usr/share/backgrounds/seletor-de-tema/paleta-vermelha.jpg</filename>
     <options>zoom</options>
     <shade_type>solid</shade_type>
     <pcolor>#eb0000</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Ondas violeta</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/ondas-violeta.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#3a3560</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Curvas grafite</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/curvas-grafite.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#2a2a2e</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Astronauta entre asteroides</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/astronauta-entre-asteroides.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#1c2638</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Astronauta e o reflexo da Terra</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/astronauta-reflexo-da-terra.jpg</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#18233a</pcolor>
     <scolor>#000000</scolor>
   </wallpaper>
 </wallpapers>

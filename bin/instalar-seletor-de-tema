@@ -32,6 +32,8 @@ sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/sc
 # O nome do atalho é o ID do app: assim o dock mostra o ícone da Aparência quando ela está aberta
 sudo install -Dm 644 applications/local.seletor.tema.desktop /usr/local/share/applications/local.seletor.tema.desktop
 sudo install -Dm 644 -t /usr/share/backgrounds/seletor-de-tema wallpapers/*.jpg
+# Cópia na pasta pessoal (~/wallpapers) para achar e usar fácil; não sobrescreve nem apaga nada
+mkdir -p "$HOME/wallpapers" && cp -n wallpapers/*.jpg "$HOME/wallpapers/"
 sudo install -Dm 644 -t /usr/share/gnome-background-properties \
   sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
 sudo update-desktop-database -q /usr/local/share/applications || true

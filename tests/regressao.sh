@@ -56,6 +56,30 @@ checa "reinício força com outra conta logada" bash -c '
   grep -qE "systemctl reboot 2>/dev/null \|\| systemctl reboot -i" setup.sh &&
   ! grep -nE "^[^#]*&&[[:space:]]*systemctl reboot[[:space:]]*$|^[[:space:]]*systemctl reboot[[:space:]]*$" setup.sh'
 
+# 2026-11-13: papéis de parede também em ~/wallpapers (setup e estilo.sh), sem sobrescrever
+# os arquivos da pessoa; todo .jpg do repositório aparece em Configurações → Aparência
+checa "papéis de parede copiados para ~/wallpapers sem sobrescrever" bash -c '
+  grep -q "cp -n \"\$REPO_DIR\"/wallpapers/\*.jpg \"\$HOME/wallpapers/\"" setup.sh &&
+  grep -q "cp -n wallpapers/\*.jpg \"\$HOME/wallpapers/\"" bin/instalar-seletor-de-tema'
+for w in wallpapers/*.jpg; do
+  checa "$(basename "$w") listado na Aparência do GNOME" \
+    grep -q "/$(basename "$w")<" sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
+done
+for f in $(grep -oE "seletor-de-tema/[^<]+\.jpg" sistema/usr/share/gnome-background-properties/seletor-de-tema.xml); do
+  checa "existe wallpapers/${f#seletor-de-tema/}" test -f "wallpapers/${f#seletor-de-tema/}"
+done
+checa "papéis de parede em 4K" bash -c '
+  for w in wallpapers/*.jpg; do
+    python3 -c "import struct,sys
+d=open(sys.argv[1],\"rb\").read(); i=2
+while i<len(d):
+    m=d[i+1]; L=struct.unpack(\">H\",d[i+2:i+4])[0]
+    if m in (0xC0,0xC1,0xC2):
+        h,w=struct.unpack(\">HH\",d[i+5:i+9]); sys.exit(0 if w>=3840 and h>=2152 else 1)
+    i+=2+L
+sys.exit(1)" "$w" || { echo "  pequeno: $w"; exit 1; }
+  done'
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

@@ -33,4 +33,4 @@ for name, t in THEMES.items():
     for i in range(len(t["waves"])):
         out.append(f'<path d="{wave(i, len(t["waves"]))}" fill="url(#w{i})"/>')
     out.append('</g></svg>')
-    open(f"{sys.argv[1]}/{name}.svg", "w").write("\n".join(out))
+    open(f"{sys.argv[1]}/gnome-setup-{name}.svg", "w").write("\n".join(out))

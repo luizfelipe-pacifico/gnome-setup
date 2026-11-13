@@ -20,9 +20,10 @@ No final aparece uma janela para **reiniciar**. No primeiro login depois disso, 
 **Aparência** abre sozinha para você escolher: GNOME claro/escuro ou estilo Mac claro/escuro.
 Depois ela fica no menu do pé do GNOME (canto superior esquerdo) → **Aparência…**.
 Essa janela abre sozinha **uma única vez**: rodar o comando de novo para atualizar não a
-abre outra vez. Os papéis de parede vêm junto com o repositório e ficam em
-`/usr/share/backgrounds/seletor-de-tema` (pasta do sistema, valem para todas as contas); o
-seu papel de parede atual nunca é trocado.
+abre outra vez. Os papéis de parede (todos em 4K) vêm junto com o repositório: ficam em
+`/usr/share/backgrounds/seletor-de-tema` (aparecem em Configurações → Aparência para todas as
+contas) e uma cópia vai para a pasta **`~/wallpapers`** de quem roda o comando (sem sobrescrever
+nada). O seu papel de parede atual nunca é trocado.
 
 Para **atualizar** depois, rode o mesmo comando: ele baixa a versão nova e só faz o que falta.
 O log fica em `~/.cache/gnome-setup-instalacao.log`.
@@ -144,7 +145,8 @@ os próprios botões.
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
 - o papel de parede nunca é trocado; os do setup ficam como opção em Configurações → Aparência:
-  o do gnome-setup, Montanhas no pôr do sol, Balão nas montanhas e as paletas verde, azul,
+  o do gnome-setup, Montanhas no pôr do sol, Balão nas montanhas, Ondas violeta, Curvas grafite,
+  Astronauta entre asteroides, Astronauta e o reflexo da Terra e as paletas verde, azul,
   laranja e vermelha (o do gnome-setup e as paletas verde e azul trocam sozinhos com o modo
   claro/escuro)
 - **Super+Espaço** abre a busca (Vicinae) com cara de Spotlight: só a barra até digitar, vidro,
@@ -167,7 +169,7 @@ estilo.sh              comando de uma linha só da estilização (roda o bin/ins
 setup.sh               instalação completa, adaptada ao hardware
 bin/                   meus apps e scripts (vão para /usr/local/bin)
 applications/, icons/  atalhos e ícones dos apps
-wallpapers/            papéis de parede (gerar.py recria claro.jpg e escuro.jpg)
+wallpapers/            papéis de parede (gerar.py recria gnome-setup-claro e gnome-setup-escuro)
 gnome/configuracoes.ini   configurações do GNOME (dconf)
 extensoes/             minhas extensões do GNOME Shell
 vicinae/themes/        cores do Mac para a busca (Vicinae)

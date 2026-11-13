@@ -236,6 +236,8 @@ done
 sudo rm -f /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps "$REPO_DIR"/icons/*.svg
 sudo install -Dm644 -t /usr/share/backgrounds/seletor-de-tema "$REPO_DIR"/wallpapers/*.jpg
+# Cópia na pasta pessoal (~/wallpapers) para achar e usar fácil; não sobrescreve nem apaga nada
+mkdir -p "$HOME/wallpapers" && cp -n "$REPO_DIR"/wallpapers/*.jpg "$HOME/wallpapers/"
 sudo install -Dm644 -t /usr/share/gnome-background-properties \
   "$REPO_DIR"/sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
 sudo install -Dm644 "$E/xdg/autostart/gnome-app-grid-order.desktop" /etc/xdg/autostart/gnome-app-grid-order.desktop

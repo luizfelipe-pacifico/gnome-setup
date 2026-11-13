@@ -11,8 +11,9 @@ bash tests/regressao.sh
 
 ## Onde rodam sozinhos
 
-- **Antes de cada push**: `.githooks/pre-push`. Ative uma vez por clone:
-  `git config core.hooksPath .githooks`. Se algum teste falhar, o push não sai.
+- **Antes de cada commit e de cada push**: `.githooks/pre-commit` e `.githooks/pre-push`.
+  Ative uma vez por clone: `git config core.hooksPath .githooks`. Se algum teste falhar,
+  o commit (ou o push) não sai.
 - **No GitHub**: `.github/workflows/regressao.yml` roda a cada push.
 
 ## O que é checado
@@ -23,6 +24,10 @@ bash tests/regressao.sh
 | Erros resolvidos | `yay --save` sempre com `-Y`; yay/pacman com saída escondida nunca esperam resposta; `systemd-detect-virt` sem `none` duplicado |
 | Serve para qualquer pessoa | nenhum navegador instalado; sem `/home/<usuário>` fixo; sem e-mails, tokens, chaves ou `git config --global`; `pessoal/` nunca instalado |
 | Arquivos | tudo o que o `setup.sh` copia existe no repositório |
+
+## Regra
+
+Toda correção ou mudança de comportamento vem com um teste de regressão no mesmo commit.
 
 ## Adicionar um teste
 

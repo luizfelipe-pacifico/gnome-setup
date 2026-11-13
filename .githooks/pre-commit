@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Nenhum commit sai com um erro já resolvido de volta (o pre-push confere de novo antes de subir).
+# Ativar uma vez no clone: git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/tests/regressao.sh"

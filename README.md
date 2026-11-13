@@ -190,7 +190,7 @@ docs/                  documentação detalhada
 Todo erro já resolvido vira um teste em `tests/regressao.sh`, para nunca voltar:
 
 ```bash
-git config core.hooksPath .githooks   # uma vez por clone: o push só sai com os testes passando
+git config core.hooksPath .githooks   # uma vez por clone: commit e push só saem com os testes passando
 bash tests/regressao.sh               # rodar na mão
 ```
 

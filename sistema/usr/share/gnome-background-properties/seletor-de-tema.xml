@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<!-- Papel de parede do setup como opção em Configurações → Aparência (nunca é aplicado sozinho) -->
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>gnome-setup</name>
+    <filename>/usr/share/backgrounds/seletor-de-tema/claro.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/seletor-de-tema/escuro.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#3465a4</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+</wallpapers>

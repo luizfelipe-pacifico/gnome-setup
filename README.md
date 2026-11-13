@@ -109,10 +109,12 @@ os próprios botões.
   no azul do Developer Edition. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
-- Arquivos por dentro: pastas no estilo Mac e barra lateral como a do Finder
+- Arquivos por dentro como o Finder: pastas no estilo Mac, barra lateral com ícones na cor de
+  destaque, na grade o nome selecionado vira uma pílula azul e na lista as linhas são listradas
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
-- papel de parede próprio, claro e escuro
+- o papel de parede nunca é trocado; o do setup (claro e escuro) fica como opção em
+  Configurações → Aparência
 - **Super+Espaço** abre a busca (Vicinae) com cara de Spotlight: só a barra até digitar, vidro,
   cantos arredondados e as cores do Mac
 - lixeira clara no tema claro e escura no escuro

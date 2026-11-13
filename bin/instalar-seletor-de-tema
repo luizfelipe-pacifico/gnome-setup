@@ -15,6 +15,8 @@ systemctl --user daemon-reload && systemctl --user enable icone-calendario.timer
 sudo install -Dm 644 icons/seletor-de-tema.svg /usr/local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg
 sudo install -Dm 644 applications/seletor-de-tema.desktop /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm 644 -t /usr/share/backgrounds/seletor-de-tema wallpapers/claro.jpg wallpapers/escuro.jpg
+sudo install -Dm 644 -t /usr/share/gnome-background-properties \
+  sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
 sudo update-desktop-database -q /usr/local/share/applications || true
 # Versões antigas instaladas em /usr/share e cópias de teste no home
 sudo rm -f /usr/share/applications/seletor-de-tema.desktop \

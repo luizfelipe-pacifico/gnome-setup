@@ -58,7 +58,6 @@ APPLE_BUTTONS = "close,minimize,maximize:"
 CURSOR = "macOS"
 ICONS = "MacApps"  # só ícones de apps estilo Mac; barra e símbolos seguem os do GNOME
 FONT = "Inter Variable"  # versão variável: um arquivo de 1,7 MB com todos os pesos
-WALLPAPER_DIR = "/usr/share/backgrounds/seletor-de-tema"
 EXT_DIRS = [os.path.expanduser("~/.local/share/gnome-shell/extensions"),
             "/usr/share/gnome-shell/extensions"]
 
@@ -120,14 +119,7 @@ APPLE_SETTINGS = [
     ("org.gnome.desktop.interface", "accent-color", "s", lambda d: "blue", {}),
     ("org.gnome.shell.extensions.kiwimenu", "macos-accelerators", "b", lambda d: True,
      {"ext": "kiwimenu@kemma"}),
-    # Papel de parede claro e escuro
-    ("org.gnome.desktop.background", "picture-uri", "s",
-     lambda d: f"file://{WALLPAPER_DIR}/claro.jpg", {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
-    ("org.gnome.desktop.background", "picture-uri-dark", "s",
-     lambda d: f"file://{WALLPAPER_DIR}/escuro.jpg", {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
-    ("org.gnome.desktop.screensaver", "picture-uri", "s",
-     lambda d: f"file://{WALLPAPER_DIR}/{'escuro' if d else 'claro'}.jpg",
-     {"need": lambda: os.path.isdir(WALLPAPER_DIR)}),
+    # O papel de parede nunca é trocado: o do setup fica só como opção em Configurações → Aparência
     # Dock: embaixo, centralizada, pontinho nos apps abertos, "Launchpad" à esquerda
     *(("org.gnome.shell.extensions.dash-to-dock", key, typ, (lambda v: lambda d: v)(val),
        {"ext": "dash-to-dock@micxgx.gmail.com"})
@@ -171,14 +163,36 @@ GTK4_CSS = "\n".join([
     "windowcontrols:hover > button > image { color: rgba(0, 0, 0, 0.55); }",
     "windowcontrols > button:active > image { filter: brightness(0.8); }",
     "windowcontrols:not(:hover) > button:backdrop > image { background-color: alpha(gray, 0.45); }",
-    # Arquivos: barra lateral como a do Finder (itens arredondados, seleção cinza, ícone na cor
-    # de destaque) e itens da grade com cantos arredondados
-    ".nautilus-window .navigation-sidebar > row { border-radius: 7px; margin: 1px 8px;"
-    " min-height: 30px; }",
-    ".nautilus-window .navigation-sidebar > row:selected { background-color: alpha(currentColor, 0.12);"
+    # Arquivos como o Finder. Barra lateral: itens baixos e arredondados, ícones sempre na cor de
+    # destaque, seleção cinza clara
+    ".nautilus-window .navigation-sidebar > row { border-radius: 6px; margin: 0 10px;"
+    " min-height: 28px; padding: 0 8px; }",
+    ".nautilus-window .navigation-sidebar > row image { color: @accent_color; }",
+    ".nautilus-window .navigation-sidebar > row:hover { background-color: alpha(currentColor, 0.05); }",
+    ".nautilus-window .navigation-sidebar > row:selected { background-color: alpha(currentColor, 0.1);"
     " color: inherit; }",
-    ".nautilus-window .navigation-sidebar > row:selected image { color: @accent_color; }",
-    ".nautilus-window gridview > child { border-radius: 10px; }",
+    # Grade: o item não ganha um bloco azul; o ícone ganha um fundo cinza arredondado e o nome
+    # vira uma pílula azul com texto branco
+    ".nautilus-grid-view gridview { padding: 20px; border-spacing: 10px; }",
+    ".nautilus-grid-view gridview > child, .nautilus-grid-view gridview > child:hover,"
+    " .nautilus-grid-view gridview > child:selected { background: none; box-shadow: none; }",
+    ".nautilus-grid-view .nautilus-image { border-radius: 8px; padding: 4px; }",
+    ".nautilus-grid-view gridview > child:selected .nautilus-image"
+    " { background-color: alpha(currentColor, 0.1); }",
+    ".nautilus-grid-view .icon-ui-labels-box { margin-top: 4px; }",
+    ".nautilus-grid-view .icon-ui-labels-box label { font-size: 0.92em; padding: 1px 6px;"
+    " border-radius: 5px; }",
+    ".nautilus-grid-view gridview > child:selected .icon-ui-labels-box label"
+    " { background-color: @accent_bg_color; color: @accent_fg_color; }",
+    # Lista: linhas listradas, mais juntas, e seleção azul inteira como no Finder
+    ".nautilus-list-view columnview > listview { border-spacing: 0; padding-top: 6px; }",
+    ".nautilus-list-view columnview > listview > row { border-radius: 6px; min-height: 26px; }",
+    ".nautilus-list-view columnview > listview > row:nth-child(even)"
+    " { background-color: alpha(currentColor, 0.035); }",
+    ".nautilus-list-view columnview > listview > row:hover { background-color: alpha(currentColor, 0.06); }",
+    ".nautilus-list-view columnview > listview > row:selected"
+    " { background-color: @accent_bg_color; color: @accent_fg_color; }",
+    ".nautilus-list-view columnview > listview > row:selected .dim-label { opacity: 0.85; }",
 ])
 # Firefox desenha os próprios botões: o userChrome.css pinta só os três, sem mudar mais nada nele
 FIREFOX_CSS = "\n".join([
@@ -416,7 +430,7 @@ def script_status():
 
 def apply_theme(t):
     # Modo claro/escuro sempre; no estilo Apple também botões, ponteiro, ícones, fonte,
-    # dock, barra, papel de parede, atalho de busca e extensões (o GNOME desfaz tudo)
+    # dock, barra, atalho de busca e extensões (o GNOME desfaz tudo); o papel de parede não muda
     settings("org.gnome.desktop.interface").set_string(
         "color-scheme", "prefer-dark" if t["dark"] else "default")
     apply_settings(t)
@@ -562,7 +576,7 @@ class App(Adw.Application):
         # Status da instalação (conversa com o apply-macos-look.sh pelo arquivo de status)
         parts_group = Adw.PreferencesGroup(
             title="Componentes do estilo Apple",
-            description="Botões coloridos, ponteiro, ícones, fonte, dock, papel de parede, "
+            description="Botões coloridos, ponteiro, ícones, fonte, dock, "
                         "Super+Espaço para buscar, vidro e efeito de minimizar.")
         self.status_row = Adw.ActionRow()
         self.status_icon = Gtk.Image(pixel_size=32)
@@ -636,7 +650,7 @@ class App(Adw.Application):
         self.all_users_btn.add_css_class("pill")
         self.all_users_btn.connect("clicked", self.on_apply_all_users)
         row = Adw.ActionRow(title="Usar esta aparência para todos",
-                            subtitle="Tema, botões, ponteiro, ícones, fonte, papel de parede e vidro "
+                            subtitle="Tema, botões, ponteiro, ícones, fonte e vidro "
                                      "atuais viram o padrão do sistema")
         row.add_prefix(Gtk.Image(icon_name="system-users-symbolic"))
         row.add_suffix(self.all_users_btn)

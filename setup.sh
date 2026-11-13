@@ -222,6 +222,8 @@ for d in seletor-de-tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosG
 done
 sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps "$REPO_DIR"/icons/*.svg
 sudo install -Dm644 -t /usr/share/backgrounds/seletor-de-tema "$REPO_DIR"/wallpapers/*.jpg
+sudo install -Dm644 -t /usr/share/gnome-background-properties \
+  "$REPO_DIR"/sistema/usr/share/gnome-background-properties/seletor-de-tema.xml
 sudo install -Dm644 "$E/xdg/autostart/gnome-app-grid-order.desktop" /etc/xdg/autostart/gnome-app-grid-order.desktop
 sudo install -Dm644 -t /usr/local/lib/systemd/user \
   "$REPO_DIR"/sistema/usr/local/lib/systemd/user/icone-calendario.{service,timer}

@@ -31,13 +31,6 @@ F=/etc/dconf/db/local.d/00-aparencia
     echo
     echo "[org/gnome/mutter]"
     echo "center-new-windows=true"
-    W=/usr/share/backgrounds/seletor-de-tema
-    if [ -d "$W" ]; then
-      echo
-      echo "[org/gnome/desktop/background]"
-      echo "picture-uri='file://$W/claro.jpg'"
-      echo "picture-uri-dark='file://$W/escuro.jpg'"
-    fi
   fi
   echo
   echo "[org/gnome/shell]"

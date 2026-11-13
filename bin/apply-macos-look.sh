@@ -16,8 +16,8 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 # Ícones de apps nativos num tema "MacApps" pequeno (alguns KB), que herda o Adwaita:
 #  - estilo Mac (WhiteSur): Console, Monitor, Calculadora, Editor de Texto, Lixeira e outros
 #  - outros nativos com ícones coloridos do WhiteSur feitos para apps parecidos (sem moldura branca
-#    e sem copiar a Apple): Arquivos = pasta com casinha, Programas = sacola azul, Contatos, Clima,
-#    Discos, Câmera, Extensões; Web ganha um globo próprio no formato do Mac
+#    e sem copiar a Apple): Programas = sacola azul, Contatos, Clima,
+#    Discos, Câmera, Extensões; Web (globo) e Arquivos (caixa com folhas) têm desenho próprio
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
 #  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
 #  - lixeira clara no tema claro e escura no tema escuro (tema "MacApps-dark", que herda o MacApps)
@@ -26,7 +26,7 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=7
+MAC_VERSAO=8
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
@@ -41,8 +41,7 @@ MAC = ["org.gnome.Console", "org.gnome.SystemMonitor", "utilities-system-monitor
        "org.freedesktop.MalcontentControl", "gnome-color-manager", "gufw", "htop", "timeshift",
        "preferences-system-network", "org.gnome.Calculator", "org.gnome.TextEditor", "org.gnome.Music"]
 # App -> (pasta do WhiteSur, ícone): desenhos feitos para outros apps, no estilo Mac
-TROCA = {"org.gnome.Nautilus": ("places", "user-home"),
-         "org.gnome.Software": ("alternative", "softwarecenter"),
+TROCA = {"org.gnome.Software": ("alternative", "softwarecenter"),
          "org.gnome.Contacts": ("apps", "addressbook"),
          "org.gnome.Weather": ("apps", "indicator-weather"),
          "org.gnome.DiskUtility": ("apps", "gnome-disks"),
@@ -78,6 +77,41 @@ WEB = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   </g>
 </svg>
 """
+# Arquivos: caixa de arquivo com folhas, tudo arredondado (desenho próprio, sem o rosto do Finder)
+ARQUIVOS = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7cc4ff"/><stop offset="1" stop-color="#2b7cf0"/>
+    </linearGradient>
+    <radialGradient id="luz" cx="0.35" cy="0.2" r="0.8">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pasta" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3eefc"/>
+    </linearGradient>
+    <linearGradient id="tras" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d6e6fb"/><stop offset="1" stop-color="#b9d2f5"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0b2350" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#luz)"/>
+  <!-- fundo da pasta com a aba arredondada -->
+  <path d="M30 42 a8 8 0 0 1 8 -8 h14 a7 7 0 0 1 5.5 2.7 l3 3.6 a7 7 0 0 0 5.5 2.7 h24 a8 8 0 0 1 8 8 v34 a8 8 0 0 1 -8 8 h-52 a8 8 0 0 1 -8 -8 z"
+        fill="url(#tras)" filter="url(#sombra)"/>
+  <!-- folhas saindo da pasta -->
+  <rect x="38" y="40" width="46" height="34" rx="5" fill="#fff" opacity="0.85" transform="rotate(-6 61 57)"/>
+  <rect x="43" y="43" width="46" height="34" rx="5" fill="#fff" filter="url(#sombra)"/>
+  <g stroke="#9cc3f5" stroke-width="3" stroke-linecap="round">
+    <line x1="51" y1="52" x2="72" y2="52"/><line x1="51" y1="59" x2="80" y2="59"/>
+  </g>
+  <!-- frente da pasta -->
+  <rect x="28" y="58" width="72" height="38" rx="9" fill="url(#pasta)" filter="url(#sombra)"/>
+  <rect x="54" y="67" width="20" height="5" rx="2.5" fill="#2b7cf0" opacity="0.55"/>
+</svg>
+"""
 LIXEIRA = ["user-trash", "user-trash-full"]
 
 
@@ -104,6 +138,8 @@ for name, (pasta, icone) in TROCA.items():
         shutil.copy(path, f"{OUT}/apps/scalable/{name}.svg")
 with open(f"{OUT}/apps/scalable/org.gnome.Epiphany.svg", "w") as f:
     f.write(WEB)
+with open(f"{OUT}/apps/scalable/org.gnome.Nautilus.svg", "w") as f:
+    f.write(ARQUIVOS)
 for name in LIXEIRA:
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")

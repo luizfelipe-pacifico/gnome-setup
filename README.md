@@ -93,15 +93,17 @@ abre sem a seleção anterior, é só arrastar para selecionar de novo; e **Widg
 
 Escolher um tema "Apple" aplica o estilo; escolher um tema "GNOME" desfaz tudo e volta ao
 que você tinha antes. Os ajustes valem só para os apps nativos do GNOME e para os meus apps.
-Apps de fora (Chrome, Flatpaks etc.) continuam como são; no Firefox só os três botões
-ganham as cores (por `userChrome.css`).
+Apps de fora (Chrome, Flatpaks etc.) continuam como são; só os três botões ganham as cores:
+no Firefox por `userChrome.css` e nos apps GTK3 (apps do AUR, Chrome) pelo `gtk-3.0/gtk.css`.
+No Chrome, escolha o tema "GTK" em Configurações → Aparência; com tema da loja ele desenha
+os próprios botões.
 
 - botões fechar/minimizar/maximizar coloridos e à esquerda
 - ponteiro do macOS e fonte Inter
 - ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
-  Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Arquivos (pasta com
-  casinha), Programas (sacola), Contatos, Clima, Discos, Câmera e Extensões usam desenhos
-  coloridos. Web ganha um globo próprio. Bateria, rede, volume e apps de fora continuam como são.
+  Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Programas (sacola),
+  Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (globo) e Arquivos
+  (caixa de arquivo com folhas, toda arredondada) têm desenho próprio. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
 - Arquivos por dentro: pastas no estilo Mac e barra lateral como a do Finder

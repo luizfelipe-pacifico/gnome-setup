@@ -19,7 +19,7 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 #    e sem copiar a Apple): Programas = sacola azul, Contatos, Clima,
 #    Discos, Câmera, Extensões
 #  - desenhos próprios no estilo da sacola do Programas (o quadrado é o próprio objeto, nada colado
-#    em cima): Web (bússola sobre globo), Arquivos (gaveteiro), Vim (placa verde com o V) e
+#    em cima): Web (bússola sobre globo), Arquivos (pasta), Vim (placa verde com o V) e
 #    Vicinae (lua no céu escuro)
 #  - Firefox: a raposa no globo de sempre, no azul do Developer Edition e sem moldura
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
@@ -30,7 +30,7 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=13
+MAC_VERSAO=14
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
@@ -100,32 +100,32 @@ WEB = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <circle cx="64" cy="64" r="3.5" fill="#fff"/>
 </svg>
 """
-# Arquivos: o quadrado é um gaveteiro, com uma folha saindo da gaveta de cima
+# Arquivos: o quadrado é a própria pasta, com a aba e uma folha aparecendo
 ARQUIVOS = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5aaefc"/><stop offset="1" stop-color="#2b82f0"/>
+    <linearGradient id="tras" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d8ef2"/><stop offset="1" stop-color="#1f62cf"/>
+    </linearGradient>
+    <linearGradient id="frente" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fcbff"/><stop offset="1" stop-color="#4a9cf6"/>
     </linearGradient>
     <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
     </filter>
-    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    <filter id="leve" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="-1.5" stdDeviation="2" flood-color="#0b2f73" flood-opacity="0.35"/>
     </filter>
     <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
   </defs>
-  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <!-- o quadrado é a pasta: fundo (parte de trás) -->
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#tras)" filter="url(#sombra)"/>
+  <!-- folha clara aparecendo dentro -->
+  <rect x="24" y="30" width="80" height="40" rx="6" fill="#fff" opacity="0.92"/>
+  <!-- frente da pasta, com a aba arredondada -->
   <g clip-path="url(#forma)">
-    <rect x="8" y="66" width="112" height="54" fill="#1f6fd8" opacity="0.35"/>
-    <rect x="8" y="64" width="112" height="3" fill="#fff" opacity="0.35"/>
+    <path d="M0 52 Q0 44 8 44 H44 Q50 44 53 40 L56 37 Q59 34 64 34 H128 V128 H0 Z" fill="url(#frente)" filter="url(#leve)"/>
   </g>
-  <rect x="40" y="18" width="48" height="34" rx="5" fill="#fff" filter="url(#leve)"/>
-  <rect x="48" y="25" width="22" height="3" rx="1.5" fill="#9cc3f5"/>
-  <rect x="48" y="31" width="30" height="3" rx="1.5" fill="#9cc3f5"/>
-  <path d="M8 40 H120 V64 H8 Z" fill="url(#fundo)" clip-path="url(#forma)"/>
-  <rect x="34" y="37" width="60" height="6" rx="3" fill="#174fa8" opacity="0.6"/>
-  <rect x="50" y="50" width="28" height="8" rx="4" fill="#fff" filter="url(#leve)"/>
-  <rect x="50" y="88" width="28" height="8" rx="4" fill="#fff" filter="url(#leve)"/>
+  <rect x="50" y="84" width="28" height="6" rx="3" fill="#fff" opacity="0.75"/>
 </svg>
 """
 # Vim: o quadrado é a placa verde com o V

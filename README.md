@@ -104,13 +104,14 @@ os próprios botões.
 - ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
   Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Programas (sacola),
   Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (bússola sobre um globo),
-  Arquivos (gaveteiro), Vim e Vicinae têm desenho próprio no estilo da sacola: o quadrado
+  Arquivos (pasta), Vim e Vicinae têm desenho próprio no estilo da sacola: o quadrado
   arredondado é o próprio objeto, sem nada colado em cima. O Firefox fica com a raposa no globo,
   no azul do Developer Edition. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
-- Arquivos por dentro como o Finder: pastas no estilo Mac, barra lateral com ícones na cor de
-  destaque, na grade o nome selecionado vira uma pílula azul e na lista as linhas são listradas
+- Arquivos por dentro como o Finder, espaçoso e limpo: pastas no estilo Mac, barra lateral com
+  ícones na cor de destaque, na grade o nome selecionado vira uma pílula azul e na lista a seleção
+  fica azul inteira
 - dock embaixo e centralizada, com pontinho nos apps abertos
 - relógio com dia da semana e sem canto ativo
 - o papel de parede nunca é trocado; o do setup (claro e escuro) fica como opção em

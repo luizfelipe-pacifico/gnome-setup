@@ -102,8 +102,9 @@ os próprios botões.
 - ponteiro do macOS e fonte Inter
 - ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
   Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Programas (sacola),
-  Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (globo) e Arquivos
-  (caixa de arquivo com folhas, toda arredondada) têm desenho próprio. Bateria, rede, volume e apps de fora continuam como são.
+  Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (bússola sobre um globo),
+  Arquivos (gaveteiro), Firewall (parede de tijolos), Firefox, Vim e Vicinae têm desenho próprio
+  no estilo da sacola: o quadrado arredondado é o próprio objeto, sem nada colado em cima. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
 - Arquivos por dentro: pastas no estilo Mac e barra lateral como a do Finder

@@ -146,7 +146,21 @@ APPLE_SETTINGS = [
 # Botões de janela coloridos (semáforo), entre marcadores para não mexer no resto do gtk.css
 CSS_BEGIN, CSS_END = "/* seletor-de-tema: início */", "/* seletor-de-tema: fim */"
 TRAFFIC_LIGHTS = {"close": "#ff5f57", "minimize": "#febc2e", "maximize": "#28c840"}
+# Botões que o Chrome (tema GTK, que usa GTK4) e os apps GTK3 do AUR desenham com a classe
+# "titlebutton": só os três ficam coloridos, o resto desses apps não muda. Os apps do GNOME não
+# usam essa classe no GTK4. O ícone de 16px encolhe para caber na bolinha de 14px.
+TITLEBUTTON_CSS = "\n".join([
+    "button.titlebutton { min-width: 14px; min-height: 14px; padding: 0; margin: 0 4px;"
+    " border: none; border-radius: 100%; background-image: none; color: transparent;"
+    " box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); -gtk-icon-shadow: none;"
+    " -gtk-icon-transform: scale(0.75); }",
+    *(f"button.titlebutton.{b} {{ background-color: {c}; }}" for b, c in TRAFFIC_LIGHTS.items()),
+    "button.titlebutton:hover { color: rgba(0, 0, 0, 0.55); }",
+    "button.titlebutton:active { box-shadow: inset 0 0 0 20px rgba(0, 0, 0, 0.2); }",
+    "button.titlebutton:backdrop:not(:hover) { background-color: alpha(gray, 0.45); }",
+])
 GTK4_CSS = "\n".join([
+    TITLEBUTTON_CSS,
     "windowcontrols { border-spacing: 8px; }",
     "windowcontrols > button { min-width: 14px; min-height: 14px; padding: 0; margin: 0;"
     " background: none; box-shadow: none; }",
@@ -181,20 +195,8 @@ FIREFOX_CSS = "\n".join([
     " { background: rgba(128, 128, 128, 0.45) !important; }",
 ])
 FIREFOX_PREF = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
-# Apps GTK3 (Chrome no tema GTK, apps do AUR...): só os três botões ficam coloridos, o resto não muda.
-# O ícone de 16px encolhe para caber na bolinha de 14px.
-GTK3_CSS = "\n".join([
-    "button.titlebutton { min-width: 14px; min-height: 14px; padding: 0; margin: 0 4px;"
-    " border: none; border-radius: 100%; background-image: none; color: transparent;"
-    " box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); -gtk-icon-shadow: none;"
-    " -gtk-icon-transform: scale(0.75); }",
-    *(f"button.titlebutton.{b} {{ background-color: {c}; }}" for b, c in TRAFFIC_LIGHTS.items()),
-    "button.titlebutton:hover { color: rgba(0, 0, 0, 0.55); }",
-    "button.titlebutton:active { box-shadow: inset 0 0 0 20px rgba(0, 0, 0, 0.2); }",
-    "button.titlebutton:backdrop:not(:hover) { background-color: alpha(gray, 0.45); }",
-])
 USER_CSS = [(os.path.expanduser("~/.config/gtk-4.0/gtk.css"), GTK4_CSS),
-            (os.path.expanduser("~/.config/gtk-3.0/gtk.css"), GTK3_CSS)]
+            (os.path.expanduser("~/.config/gtk-3.0/gtk.css"), TITLEBUTTON_CSS)]
 
 # O que o apply-macos-look.sh instala (nome, verificação)
 COMPONENTS = [

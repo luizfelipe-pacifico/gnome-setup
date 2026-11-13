@@ -17,7 +17,10 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 #  - estilo Mac (WhiteSur): Console, Monitor, Calculadora, Editor de Texto, Lixeira e outros
 #  - outros nativos com ícones coloridos do WhiteSur feitos para apps parecidos (sem moldura branca
 #    e sem copiar a Apple): Programas = sacola azul, Contatos, Clima,
-#    Discos, Câmera, Extensões; Web (globo) e Arquivos (caixa com folhas) têm desenho próprio
+#    Discos, Câmera, Extensões
+#  - desenhos próprios no estilo da sacola do Programas (o quadrado é o próprio objeto, nada colado
+#    em cima): Web (bússola sobre globo), Arquivos (gaveteiro), Firewall (parede de tijolos),
+#    Firefox (raposa em volta do planeta), Vim (placa verde com o V) e Vicinae (lua no céu escuro)
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
 #  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
 #  - lixeira clara no tema claro e escura no tema escuro (tema "MacApps-dark", que herda o MacApps)
@@ -26,7 +29,7 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=8
+MAC_VERSAO=12
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
@@ -38,7 +41,7 @@ SRC, OUT = sys.argv[1:3]
 MAC = ["org.gnome.Console", "org.gnome.SystemMonitor", "utilities-system-monitor", "org.gnome.tweaks",
        "org.gnome.Loupe", "org.gnome.Showtime", "org.gnome.Characters", "org.gnome.Connections",
        "org.gnome.Decibels", "org.gnome.SimpleScan", "org.gnome.Yelp", "org.gnome.Tour",
-       "org.freedesktop.MalcontentControl", "gnome-color-manager", "gufw", "htop", "timeshift",
+       "org.freedesktop.MalcontentControl", "gnome-color-manager", "htop", "timeshift",
        "preferences-system-network", "org.gnome.Calculator", "org.gnome.TextEditor", "org.gnome.Music"]
 # App -> (pasta do WhiteSur, ícone): desenhos feitos para outros apps, no estilo Mac
 TROCA = {"org.gnome.Software": ("alternative", "softwarecenter"),
@@ -49,69 +52,196 @@ TROCA = {"org.gnome.Software": ("alternative", "softwarecenter"),
          "org.gnome.Snapshot": ("apps", "hu.irl.cameractrls"),
          "org.gnome.Extensions": ("apps", "extensions"),
          "com.mattjakeman.ExtensionManager": ("apps", "extensions")}
-# Web: globo branco num quadrado azul arredondado (desenho próprio, sem a bússola do Safari)
+# Web: bússola sobre um globo, o quadrado é o próprio mostrador
 WEB = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
     <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5ac8fa"/><stop offset="1" stop-color="#1e6fe0"/>
+      <stop offset="0" stop-color="#5ec3ff"/><stop offset="1" stop-color="#1663e0"/>
     </linearGradient>
-    <radialGradient id="luz" cx="0.35" cy="0.25" r="0.75">
+    <radialGradient id="luz" cx="0.3" cy="0.2" r="0.85">
       <stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="vermelho" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff6b5e"/><stop offset="1" stop-color="#e0262b"/>
+    </linearGradient>
+    <linearGradient id="branco" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe6ef"/>
+    </linearGradient>
     <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0b2350" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
     </filter>
-    <clipPath id="globo"><circle cx="64" cy="64" r="36"/></clipPath>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#06205a" flood-opacity="0.4"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
+    <clipPath id="globo"><circle cx="64" cy="64" r="40"/></clipPath>
   </defs>
+  <!-- mostrador azul -->
   <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
   <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#luz)"/>
-  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" filter="url(#sombra)">
-    <circle cx="64" cy="64" r="36"/>
-    <g clip-path="url(#globo)">
-      <ellipse cx="64" cy="64" rx="15" ry="36"/>
-      <line x1="64" y1="28" x2="64" y2="100"/>
-      <line x1="28" y1="64" x2="100" y2="64"/>
-      <path d="M33 46 Q64 54 95 46"/>
-      <path d="M33 82 Q64 74 95 82"/>
-    </g>
+  <!-- marquinhas da bússola -->
+  <g stroke="#fff" stroke-opacity="0.9" stroke-linecap="round">
+    <line x1="64.0" y1="14.0" x2="64.0" y2="20.0" stroke-width="2.4"/><line x1="70.5" y1="14.4" x2="70.1" y2="17.4" stroke-width="1.4"/><line x1="76.9" y1="15.7" x2="76.2" y2="18.6" stroke-width="1.4"/><line x1="83.1" y1="17.8" x2="82.0" y2="20.6" stroke-width="1.4"/><line x1="89.0" y1="20.7" x2="87.5" y2="23.3" stroke-width="1.4"/><line x1="94.4" y1="24.3" x2="92.6" y2="26.7" stroke-width="1.4"/><line x1="99.4" y1="28.6" x2="95.1" y2="32.9" stroke-width="2.4"/><line x1="103.7" y1="33.6" x2="101.3" y2="35.4" stroke-width="1.4"/><line x1="107.3" y1="39.0" x2="104.7" y2="40.5" stroke-width="1.4"/><line x1="110.2" y1="44.9" x2="107.4" y2="46.0" stroke-width="1.4"/><line x1="112.3" y1="51.1" x2="109.4" y2="51.8" stroke-width="1.4"/><line x1="113.6" y1="57.5" x2="110.6" y2="57.9" stroke-width="1.4"/><line x1="114.0" y1="64.0" x2="108.0" y2="64.0" stroke-width="2.4"/><line x1="113.6" y1="70.5" x2="110.6" y2="70.1" stroke-width="1.4"/><line x1="112.3" y1="76.9" x2="109.4" y2="76.2" stroke-width="1.4"/><line x1="110.2" y1="83.1" x2="107.4" y2="82.0" stroke-width="1.4"/><line x1="107.3" y1="89.0" x2="104.7" y2="87.5" stroke-width="1.4"/><line x1="103.7" y1="94.4" x2="101.3" y2="92.6" stroke-width="1.4"/><line x1="99.4" y1="99.4" x2="95.1" y2="95.1" stroke-width="2.4"/><line x1="94.4" y1="103.7" x2="92.6" y2="101.3" stroke-width="1.4"/><line x1="89.0" y1="107.3" x2="87.5" y2="104.7" stroke-width="1.4"/><line x1="83.1" y1="110.2" x2="82.0" y2="107.4" stroke-width="1.4"/><line x1="76.9" y1="112.3" x2="76.2" y2="109.4" stroke-width="1.4"/><line x1="70.5" y1="113.6" x2="70.1" y2="110.6" stroke-width="1.4"/><line x1="64.0" y1="114.0" x2="64.0" y2="108.0" stroke-width="2.4"/><line x1="57.5" y1="113.6" x2="57.9" y2="110.6" stroke-width="1.4"/><line x1="51.1" y1="112.3" x2="51.8" y2="109.4" stroke-width="1.4"/><line x1="44.9" y1="110.2" x2="46.0" y2="107.4" stroke-width="1.4"/><line x1="39.0" y1="107.3" x2="40.5" y2="104.7" stroke-width="1.4"/><line x1="33.6" y1="103.7" x2="35.4" y2="101.3" stroke-width="1.4"/><line x1="28.6" y1="99.4" x2="32.9" y2="95.1" stroke-width="2.4"/><line x1="24.3" y1="94.4" x2="26.7" y2="92.6" stroke-width="1.4"/><line x1="20.7" y1="89.0" x2="23.3" y2="87.5" stroke-width="1.4"/><line x1="17.8" y1="83.1" x2="20.6" y2="82.0" stroke-width="1.4"/><line x1="15.7" y1="76.9" x2="18.6" y2="76.2" stroke-width="1.4"/><line x1="14.4" y1="70.5" x2="17.4" y2="70.1" stroke-width="1.4"/><line x1="14.0" y1="64.0" x2="20.0" y2="64.0" stroke-width="2.4"/><line x1="14.4" y1="57.5" x2="17.4" y2="57.9" stroke-width="1.4"/><line x1="15.7" y1="51.1" x2="18.6" y2="51.8" stroke-width="1.4"/><line x1="17.8" y1="44.9" x2="20.6" y2="46.0" stroke-width="1.4"/><line x1="20.7" y1="39.0" x2="23.3" y2="40.5" stroke-width="1.4"/><line x1="24.3" y1="33.6" x2="26.7" y2="35.4" stroke-width="1.4"/><line x1="28.6" y1="28.6" x2="32.9" y2="32.9" stroke-width="2.4"/><line x1="33.6" y1="24.3" x2="35.4" y2="26.7" stroke-width="1.4"/><line x1="39.0" y1="20.7" x2="40.5" y2="23.3" stroke-width="1.4"/><line x1="44.9" y1="17.8" x2="46.0" y2="20.6" stroke-width="1.4"/><line x1="51.1" y1="15.7" x2="51.8" y2="18.6" stroke-width="1.4"/><line x1="57.5" y1="14.4" x2="57.9" y2="17.4" stroke-width="1.4"/>
   </g>
+  <!-- globo suave no meio -->
+  <g clip-path="url(#globo)" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="2.2">
+    <circle cx="64" cy="64" r="39"/>
+    <ellipse cx="64" cy="64" rx="17" ry="40"/>
+    <line x1="64" y1="24" x2="64" y2="104"/>
+    <line x1="24" y1="64" x2="104" y2="64"/>
+    <path d="M28 46 Q64 55 100 46"/><path d="M28 82 Q64 73 100 82"/>
+  </g>
+  <!-- agulha vermelha e branca, com as pontas arredondadas -->
+  <g filter="url(#leve)" stroke-linejoin="round" stroke-width="3">
+    <path d="M90 38 L69 69 L59 59 Z" fill="url(#vermelho)" stroke="url(#vermelho)"/>
+    <path d="M38 90 L59 59 L69 69 Z" fill="url(#branco)" stroke="url(#branco)"/>
+  </g>
+  <circle cx="64" cy="64" r="3.5" fill="#fff"/>
 </svg>
 """
-# Arquivos: caixa de arquivo com folhas, tudo arredondado (desenho próprio, sem o rosto do Finder)
+# Arquivos: o quadrado é um gaveteiro, com uma folha saindo da gaveta de cima
 ARQUIVOS = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
     <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#7cc4ff"/><stop offset="1" stop-color="#2b7cf0"/>
-    </linearGradient>
-    <radialGradient id="luz" cx="0.35" cy="0.2" r="0.8">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="pasta" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3eefc"/>
-    </linearGradient>
-    <linearGradient id="tras" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#d6e6fb"/><stop offset="1" stop-color="#b9d2f5"/>
+      <stop offset="0" stop-color="#5aaefc"/><stop offset="1" stop-color="#2b82f0"/>
     </linearGradient>
     <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0b2350" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
     </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
   </defs>
   <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
-  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#luz)"/>
-  <!-- fundo da pasta com a aba arredondada -->
-  <path d="M30 42 a8 8 0 0 1 8 -8 h14 a7 7 0 0 1 5.5 2.7 l3 3.6 a7 7 0 0 0 5.5 2.7 h24 a8 8 0 0 1 8 8 v34 a8 8 0 0 1 -8 8 h-52 a8 8 0 0 1 -8 -8 z"
-        fill="url(#tras)" filter="url(#sombra)"/>
-  <!-- folhas saindo da pasta -->
-  <rect x="38" y="40" width="46" height="34" rx="5" fill="#fff" opacity="0.85" transform="rotate(-6 61 57)"/>
-  <rect x="43" y="43" width="46" height="34" rx="5" fill="#fff" filter="url(#sombra)"/>
-  <g stroke="#9cc3f5" stroke-width="3" stroke-linecap="round">
-    <line x1="51" y1="52" x2="72" y2="52"/><line x1="51" y1="59" x2="80" y2="59"/>
+  <g clip-path="url(#forma)">
+    <rect x="8" y="66" width="112" height="54" fill="#1f6fd8" opacity="0.35"/>
+    <rect x="8" y="64" width="112" height="3" fill="#fff" opacity="0.35"/>
   </g>
-  <!-- frente da pasta -->
-  <rect x="28" y="58" width="72" height="38" rx="9" fill="url(#pasta)" filter="url(#sombra)"/>
-  <rect x="54" y="67" width="20" height="5" rx="2.5" fill="#2b7cf0" opacity="0.55"/>
+  <rect x="40" y="18" width="48" height="34" rx="5" fill="#fff" filter="url(#leve)"/>
+  <rect x="48" y="25" width="22" height="3" rx="1.5" fill="#9cc3f5"/>
+  <rect x="48" y="31" width="30" height="3" rx="1.5" fill="#9cc3f5"/>
+  <path d="M8 40 H120 V64 H8 Z" fill="url(#fundo)" clip-path="url(#forma)"/>
+  <rect x="34" y="37" width="60" height="6" rx="3" fill="#174fa8" opacity="0.6"/>
+  <rect x="50" y="50" width="28" height="8" rx="4" fill="#fff" filter="url(#leve)"/>
+  <rect x="50" y="88" width="28" height="8" rx="4" fill="#fff" filter="url(#leve)"/>
 </svg>
 """
+# Firewall: o quadrado é uma parede de tijolos
+FIREWALL = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a50"/><stop offset="1" stop-color="#e2432c"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <g clip-path="url(#forma)" stroke="#ffe3d6" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9">
+    <line x1="0" y1="36" x2="128" y2="36"/><line x1="0" y1="64" x2="128" y2="64"/><line x1="0" y1="92" x2="128" y2="92"/>
+    <line x1="44" y1="8" x2="44" y2="36"/><line x1="86" y1="8" x2="86" y2="36"/>
+    <line x1="24" y1="36" x2="24" y2="64"/><line x1="64" y1="36" x2="64" y2="64"/><line x1="104" y1="36" x2="104" y2="64"/>
+    <line x1="44" y1="64" x2="44" y2="92"/><line x1="86" y1="64" x2="86" y2="92"/>
+    <line x1="24" y1="92" x2="24" y2="120"/><line x1="64" y1="92" x2="64" y2="120"/><line x1="104" y1="92" x2="104" y2="120"/>
+  </g>
+  <g clip-path="url(#forma)" fill="#fff" opacity="0.18">
+    <rect x="8" y="8" width="112" height="28"/>
+  </g>
+</svg>
+"""
+# Vim: o quadrado é a placa verde com o V
+VIM = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43c46c"/><stop offset="1" stop-color="#178a45"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
+    <linearGradient id="letra" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe9e3"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <g clip-path="url(#forma)">
+    <path d="M8 64 L64 8 L120 64 L64 120 Z" fill="#fff" opacity="0.1"/>
+  </g>
+  <path d="M38 34 H56 L64 70 L73 34 H90 L71 94 H57 Z" fill="url(#letra)" stroke="url(#letra)"
+        stroke-width="6" stroke-linejoin="round" filter="url(#leve)"/>
+</svg>
+"""
+# Vicinae: o quadrado é o céu escuro com a lua crescente
+VICINAE = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3a42"/><stop offset="1" stop-color="#121216"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
+    <linearGradient id="lua" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d4d7e0"/>
+    </linearGradient>
+    <mask id="crescente">
+      <circle cx="64" cy="64" r="38" fill="#fff"/>
+      <circle cx="50" cy="60" r="31" fill="#000"/>
+    </mask>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
+  <circle cx="64" cy="64" r="38" fill="url(#lua)" mask="url(#crescente)" filter="url(#leve)"/>
+</svg>
+"""
+# Firefox: o quadrado é o fogo da raposa, que contorna o planeta roxo
+FIREFOX_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd43b"/><stop offset="1" stop-color="#e3166e"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
+    <linearGradient id="fogo" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe14d"/><stop offset="0.45" stop-color="#ff8a1f"/><stop offset="1" stop-color="#e3166e"/>
+    </linearGradient>
+    <radialGradient id="planeta" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#9a7bff"/><stop offset="0.6" stop-color="#5b2fd6"/><stop offset="1" stop-color="#2b1478"/>
+    </radialGradient>
+    <linearGradient id="cauda" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3a8"/><stop offset="1" stop-color="#ffb02e"/>
+    </linearGradient>
+    <linearGradient id="raposa" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb21f"/><stop offset="0.6" stop-color="#ff5a2a"/><stop offset="1" stop-color="#d9105f"/>
+    </linearGradient>
+    <mask id="corpo">
+      <circle cx="62" cy="68" r="44" fill="#fff"/>
+      <circle cx="68" cy="60" r="33" fill="#000"/>
+    </mask>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fogo)" filter="url(#sombra)"/>
+  <circle cx="68" cy="62" r="30" fill="url(#planeta)" filter="url(#leve)"/>
+  <circle cx="62" cy="68" r="44" fill="url(#raposa)" mask="url(#corpo)" filter="url(#leve)"/>
+  <path d="M34 50 C40 30 62 20 82 26 C98 31 106 46 104 62 C99 50 90 42 78 40 C68 38 58 40 50 46 C44 50 38 52 34 50 Z"
+        fill="url(#cauda)" filter="url(#leve)"/>
+</svg>
+"""
+FIREFOX = ["firefox", "firefox-developer-edition", "org.mozilla.firefox"]
 LIXEIRA = ["user-trash", "user-trash-full"]
 
 
@@ -140,6 +270,14 @@ with open(f"{OUT}/apps/scalable/org.gnome.Epiphany.svg", "w") as f:
     f.write(WEB)
 with open(f"{OUT}/apps/scalable/org.gnome.Nautilus.svg", "w") as f:
     f.write(ARQUIVOS)
+with open(f"{OUT}/apps/scalable/gufw.svg", "w") as f:
+    f.write(FIREWALL)
+for name, svg in (("gvim", VIM), ("vim", VIM), ("vicinae", VICINAE)):
+    with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
+        f.write(svg)
+for name in FIREFOX:
+    with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
+        f.write(FIREFOX_SVG)
 for name in LIXEIRA:
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")

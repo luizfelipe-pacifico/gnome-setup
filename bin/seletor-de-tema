@@ -22,6 +22,17 @@ EXT = "blur-my-shell@aunetx"
 LAMP_EXT = "compiz-alike-magic-lamp-effect@hermes83.github.com"
 WIDGET_EXT = "widget-fotos@gnome-setup"
 WIDGET_SCHEMA = "org.gnome.shell.extensions.widget-fotos"
+MESA_EXT = "widgets-mesa@gnome-setup"
+MESA_SCHEMA = "org.gnome.shell.extensions.widgets-mesa"
+# Outros widgets do Mac para a área de trabalho: (chave, título, descrição, ícone)
+MESA_WIDGETS = [
+    ("relogio", "Relógio", "Relógio de ponteiros", "preferences-system-time-symbolic"),
+    ("calendario", "Calendário", "Dia de hoje", "x-office-calendar-symbolic"),
+    ("clima", "Clima", "Tempo da cidade escolhida no app Clima", "weather-few-clouds-symbolic"),
+    ("baterias", "Baterias", "Computador e aparelhos Bluetooth (fones, mouse, controle)",
+     "battery-good-symbolic"),
+]
+LADOS = [("esquerda", "À esquerda"), ("direita", "À direita")]
 FOTOS_DIR = os.path.join(GLib.get_user_data_dir(), "widget-fotos")
 # Vicinae (Super+Espaço) com cara de Spotlight: este arquivo entra nos "imports" do settings.json
 VICINAE_DIR = os.path.join(GLib.get_user_config_dir(), "vicinae")
@@ -607,7 +618,7 @@ class App(Adw.Application):
         # Widget de fotos na área de trabalho (vem desligado)
         self.widget_settings = settings(WIDGET_SCHEMA, ext=WIDGET_EXT)
         widget_group = Adw.PreferencesGroup(
-            title="Widget de fotos",
+            title="Widget de fotos",  # os outros widgets do Mac vêm logo abaixo
             description="Um quadro na área de trabalho que vai passando as fotos que você escolher, "
                         "como no Mac. Clique nele para abrir a foto.")
         self.widget_switch = Adw.SwitchRow(title="Mostrar na área de trabalho",
@@ -646,6 +657,33 @@ class App(Adw.Application):
             self.widget_switch.set_subtitle("Rode o instalador para colocar o widget")
         self.atualizar_fotos()
         page.add(widget_group)
+
+        # Outros widgets do Mac (vêm desligados): ficam numa coluna, um embaixo do outro
+        self.mesa_settings = settings(MESA_SCHEMA, ext=MESA_EXT)
+        mesa_group = Adw.PreferencesGroup(
+            title="Outros widgets",
+            description="Como os widgets do Mac, numa coluna na área de trabalho. "
+                        "Clique em um para abrir o app dele.")
+        for key, title, sub, icon in MESA_WIDGETS:
+            row = Adw.SwitchRow(title=title, subtitle=sub)
+            row.add_prefix(Gtk.Image(icon_name=icon))
+            if self.mesa_settings:
+                row.set_active(self.mesa_settings.get_boolean(key) and extension_enabled(MESA_EXT))
+                row.connect("notify::active", self.on_mesa_widget, key)
+            else:
+                row.set_sensitive(False)
+                row.set_subtitle("Rode o instalador para colocar os widgets")
+            mesa_group.add(row)
+        lado = Adw.ComboRow(title="Posição", model=Gtk.StringList.new([t for _, t in LADOS]))
+        if self.mesa_settings:
+            atual = self.mesa_settings.get_string("lado")
+            lado.set_selected(next((i for i, (v, _) in enumerate(LADOS) if v == atual), 0))
+            lado.connect("notify::selected", lambda c, _p: self.mesa_settings.set_string(
+                "lado", LADOS[c.get_selected()][0]))
+        else:
+            lado.set_sensitive(False)
+        mesa_group.add(lado)
+        page.add(mesa_group)
 
         # Padrão para todos os usuários (pede senha de administrador)
         system_group = Adw.PreferencesGroup(title="Todos os usuários")
@@ -711,6 +749,11 @@ class App(Adw.Application):
         ok = os.waitstatus_to_exitcode(status) == 0
         self.toast.add_toast(Adw.Toast(
             title="Aplicado para todos os usuários" if ok else "Não foi aplicado para todos"))
+
+    def on_mesa_widget(self, row, _pspec, key):
+        self.mesa_settings.set_boolean(key, row.get_active())
+        # A extensão só fica ligada com algum widget escolhido (nada rodando à toa)
+        set_extension(MESA_EXT, any(self.mesa_settings.get_boolean(k) for k, *_ in MESA_WIDGETS))
 
     def on_widget_combo(self, combo, _pspec, key, options, getter):
         if self.widget_settings:

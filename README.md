@@ -105,7 +105,8 @@ Google Drive / OneDrive pelo Arquivos (Contas Online).
 
 **Extensões**: Dash to Dock, Kiwi Menu e AppIndicator (versão certa para o seu GNOME,
 direto do extensions.gnome.org) e as minhas **Seleção limpa**: a captura de tela (Print Screen)
-abre sem a seleção anterior, é só arrastar para selecionar de novo; e **Widget de fotos**.
+abre sem a seleção anterior, é só arrastar para selecionar de novo; **Widget de fotos**; e
+**Widgets da área de trabalho**.
 
 ## Estilo Mac (pela janela Aparência)
 
@@ -141,6 +142,10 @@ os próprios botões.
 - "Usar esta aparência para todos" também leva tema, ponteiro, fonte e ícones para a tela de login
 - **widget de fotos** (vem desligado): um quadro na área de trabalho que passa as fotos que você
   escolher, como no Mac. Liga e escolhe as fotos em Aparência… (elas são copiadas já reduzidas)
+- **outros widgets do Mac** (vêm desligados), numa coluna à esquerda ou à direita: **Relógio** de
+  ponteiros, **Calendário** (dia de hoje), **Clima** (a cidade escolhida no app Clima) e
+  **Baterias** (computador e aparelhos Bluetooth). Cada um liga em Aparência… e abre o app dele
+  com um clique; com todos desligados, a extensão nem roda
 - vidro na barra, dock e tela de apps (Blur my Shell, modo leve) e efeito de minimizar "lâmpada"
 
 ## Organização do repositório

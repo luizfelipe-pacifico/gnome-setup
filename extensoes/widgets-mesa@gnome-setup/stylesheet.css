@@ -1,0 +1,41 @@
+/* O St soma o padding ao tamanho: 136 + 2 × 14 = cartão de 164 px */
+.widget-mesa {
+  width: 136px;
+  height: 136px;
+  border-radius: 22px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.30);
+  background-color: rgba(255, 255, 255, 0.82);
+  color: #1d1d1f;
+  font-family: "Inter Variable", "Inter", sans-serif;
+}
+.widget-mesa.escuro {
+  background-color: rgba(30, 30, 32, 0.78);
+  color: #f5f5f7;
+}
+.widget-mesa-relogio { padding: 8px; width: 148px; height: 148px; }
+
+/* Calendário: dia da semana em vermelho, número grande */
+.widget-mesa-semana { color: #ff3b30; font-size: 13px; font-weight: 700; }
+.widget-mesa-dia { font-size: 60px; font-weight: 300; }
+.widget-mesa-mes { font-size: 13px; font-weight: 600; opacity: 0.6; }
+
+/* Clima: azul do céu, letras brancas */
+.widget-mesa-clima, .widget-mesa-clima.escuro {
+  color: #fff;
+  background-color: #2f7fd8;
+  background-gradient-direction: vertical;
+  background-gradient-start: #4a9cf0;
+  background-gradient-end: #2563b8;
+}
+.widget-mesa-clima.noite {
+  background-gradient-start: #253a63;
+  background-gradient-end: #121c33;
+}
+.widget-mesa-cidade { font-size: 13px; font-weight: 700; }
+.widget-mesa-temp { font-size: 46px; font-weight: 300; }
+.widget-mesa-ceu { font-size: 12px; font-weight: 600; }
+.widget-mesa-aviso { font-size: 12px; font-weight: 600; }
+
+/* Baterias: até 4 anéis em 2 × 2 */
+.widget-mesa-anel { width: 62px; height: 62px; }

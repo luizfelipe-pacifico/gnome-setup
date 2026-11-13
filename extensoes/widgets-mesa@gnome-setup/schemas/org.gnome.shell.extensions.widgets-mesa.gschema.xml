@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.widgets-mesa" path="/org/gnome/shell/extensions/widgets-mesa/">
+    <key name="relogio" type="b">
+      <default>false</default>
+      <summary>Relógio de ponteiros</summary>
+    </key>
+    <key name="calendario" type="b">
+      <default>false</default>
+      <summary>Dia de hoje</summary>
+    </key>
+    <key name="clima" type="b">
+      <default>false</default>
+      <summary>Clima da cidade escolhida no app Clima</summary>
+    </key>
+    <key name="baterias" type="b">
+      <default>false</default>
+      <summary>Bateria do computador e dos aparelhos Bluetooth</summary>
+    </key>
+    <key name="lado" type="s">
+      <choices><choice value="esquerda"/><choice value="direita"/></choices>
+      <default>'esquerda'</default>
+      <summary>Lado da tela onde os widgets ficam</summary>
+    </key>
+  </schema>
+</schemalist>

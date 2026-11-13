@@ -1,0 +1,8 @@
+{
+  "uuid": "widgets-mesa@gnome-setup",
+  "name": "Widgets da área de trabalho",
+  "description": "Relógio, Calendário, Clima e Baterias na área de trabalho, como os widgets do Mac. Escolha quais aparecem em Aparência… no menu do pé do GNOME.",
+  "shell-version": ["48", "49", "50", "51"],
+  "settings-schema": "org.gnome.shell.extensions.widgets-mesa",
+  "url": "https://github.com/luizfelipe-pacifico/gnome-setup"
+}

@@ -4,7 +4,10 @@
 # Quem já escolheu um tema fica com o seu; quem nunca escolheu recebe o tema de quem roda.
 # Rode como seu usuário (usa sudo). Chamado pelo instalar-seletor-de-tema e pelo setup.sh.
 set -u
-REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+# Roda a partir da cópia em /usr/local/bin: a pasta do repositório vem de quem chama
+# (GNOME_SETUP_DIR); sem ela, a do próprio script (rodando direto do repositório)
+REPO_DIR="${GNOME_SETUP_DIR:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}"
+[ -d "$REPO_DIR/extensoes" ] || { echo "Repositório do gnome-setup não encontrado em $REPO_DIR" >&2; exit 1; }
 EXTS=/usr/local/share/gnome-shell/extensions
 SHELL_VER=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
 

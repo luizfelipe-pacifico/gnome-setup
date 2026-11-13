@@ -62,7 +62,7 @@ echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
 # Extensões, padrão do sistema (contas novas e tela de login) e cada usuário do computador
-/usr/local/bin/aparencia-todos-usuarios
+GNOME_SETUP_DIR="$PWD" /usr/local/bin/aparencia-todos-usuarios
 
 echo "==> Desempenho do que o gnome-setup colocou: menos RAM parado e menos SSD"
 # Partes repetidas do que instalamos (fonte, ponteiro) e cache de pacotes (depois de o tema

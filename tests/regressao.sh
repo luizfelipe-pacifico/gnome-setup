@@ -104,6 +104,20 @@ if command -v magick >/dev/null; then
     bash -c '[ "$(magick identify -format %wx%h "$1")" = 2160x4320 ]' _ "$T/retrato-4k.jpg"
 fi
 
+# 2026-11-13: o aparencia-todos-usuarios roda da cópia em /usr/local/bin e procurava as
+# extensões em /usr/local/extensoes: widgets e seleção limpa nunca iam para o sistema e não
+# ligavam nas outras contas. Quem chama passa a pasta do repositório; sem ela, para com erro.
+checa "aparencia-todos-usuarios usa GNOME_SETUP_DIR" grep -q 'REPO_DIR="${GNOME_SETUP_DIR:-' bin/aparencia-todos-usuarios
+checa "aparencia-todos-usuarios para sem as extensões" grep -qE '\[ -d "\$REPO_DIR/extensoes" \] \|\|.*exit 1' bin/aparencia-todos-usuarios
+for f in setup.sh bin/instalar-seletor-de-tema; do
+  checa "$f passa GNOME_SETUP_DIR ao aparencia-todos-usuarios" bash -c '
+    ! grep -E "^[^#]*/usr/local/bin/aparencia-todos-usuarios" "$1" | grep -v GNOME_SETUP_DIR= | grep -q .' _ "$f"
+done
+T=$(mktemp -d); mkdir "$T/bin"; cp bin/aparencia-todos-usuarios "$T/bin/"
+checa "cópia instalada sem o repositório para antes de instalar" \
+  bash -c '! env -u GNOME_SETUP_DIR PATH=/nada /usr/bin/bash "$1/bin/aparencia-todos-usuarios" 2>/dev/null' _ "$T"
+rm -rf "$T"
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

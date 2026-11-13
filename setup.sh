@@ -290,7 +290,7 @@ systemctl --user enable icone-calendario.timer 2>/dev/null || true         # dat
 ok "energia, touchpad, dock, pastas de apps, atalhos e extensões"
 
 etapa "Estilização para todos os usuários (contas atuais, contas novas e tela de login)"
-sessao /usr/local/bin/aparencia-todos-usuarios || aviso "a estilização de algum usuário falhou"
+GNOME_SETUP_DIR="$REPO_DIR" sessao /usr/local/bin/aparencia-todos-usuarios || aviso "a estilização de algum usuário falhou"
 
 # No primeiro login depois de reiniciar, abre o Seletor de Tema para escolher a aparência.
 # Só uma vez: ao abrir, ele marca a escolha como feita, e rodar o setup de novo não recria o atalho

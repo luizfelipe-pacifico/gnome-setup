@@ -50,6 +50,11 @@ checa "dock mantém os apps já fixados" bash -c '
   grep -B3 "dconf load / < \"\$REPO_DIR/gnome/configuracoes.ini\"" setup.sh | grep -q "FIXADOS_ANTES=" &&
   grep -q "antes + \[a for a in setup if a not in antes\]" setup.sh'
 
+# 2026-11-13: o Monitor de Temperatura era fixado no dock sozinho. O setup só fixa apps
+# nativos do GNOME; apps do repositório (local.*, io.github.*) nunca entram no dock sozinhos.
+checa "dock sem apps do repositório fixados" bash -c '
+  ! grep -E "^favorite-apps=" gnome/configuracoes.ini | grep -qE "local\.|io\.github\.|MonitorTemp"'
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

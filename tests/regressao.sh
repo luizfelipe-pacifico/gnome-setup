@@ -133,6 +133,35 @@ checa "cópia instalada sem o repositório para antes de instalar" \
   bash -c '! env -u GNOME_SETUP_DIR PATH=/nada /usr/bin/bash "$1/bin/aparencia-todos-usuarios" 2>/dev/null' _ "$T"
 rm -rf "$T"
 
+# 2026-11-13: aberto pelo menu de apps, o Upscale 4K não recebia imagem e fechava sem mostrar nada
+checa "Upscale 4K sem imagem pede as imagens numa janela" bash -c '
+  grep -q "zenity --file-selection --multiple" bin/upscale-4k &&
+  [ "$(grep -n "zenity --file-selection" bin/upscale-4k | cut -d: -f1 | head -1)" -lt \
+    "$(grep -n "Uso: upscale-4k" bin/upscale-4k | tail -1 | cut -d: -f1)" ]'
+# 2026-11-13: ícone novo não aparecia porque o cache de ícones antigo não era atualizado
+checa "setup atualiza o cache de ícones depois de instalar os ícones" bash -c '
+  i=$(grep -n "icons/hicolor/scalable/apps \"\$REPO_DIR\"/icons" setup.sh | cut -d: -f1)
+  c=$(grep -n "gtk-update-icon-cache.*/usr/local/share/icons/hicolor" setup.sh | cut -d: -f1)
+  [ -n "$i" ] && [ -n "$c" ] && [ "$c" -gt "$i" ]'
+checa "instalar-seletor-de-tema atualiza o cache de ícones" grep -q "gtk-update-icon-cache.*/usr/local/share/icons/hicolor" bin/instalar-seletor-de-tema
+for svg in $(grep -ho "^Icon=[A-Za-z0-9.-]*" applications/*.desktop | cut -d= -f2); do
+  case $svg in utilities-*|*-symbolic) continue;; esac   # ícones padrão do GNOME
+  checa "ícone $svg existe em icons/" test -f "icons/$svg.svg"
+done
+# 2026-11-13: widgets ligados na Aparência não apareciam: o GNOME só carrega extensões novas
+# depois de sair e entrar. A Aparência e o instalador avisam
+checa "Aparência avisa para sair e entrar quando o widget ainda não carregou" bash -c '
+  grep -q "def extension_loaded" bin/seletor-de-tema &&
+  ! grep -qE "set_extension\((WIDGET|MESA)_EXT" bin/seletor-de-tema'
+checa "aparencia-todos-usuarios avisa para sair e entrar" grep -q "Saia e entre de novo" bin/aparencia-todos-usuarios
+# Os widgets precisam rodar na versão do GNOME deste computador
+if command -v gnome-shell >/dev/null; then
+  V=$(gnome-shell --version | grep -oE "[0-9]+" | head -1)
+  for m in extensoes/*/metadata.json; do
+    checa "$(dirname "$m" | xargs basename) roda no GNOME $V" grep -q "\"$V\"" "$m"
+  done
+fi
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

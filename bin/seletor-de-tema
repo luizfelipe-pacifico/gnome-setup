@@ -383,6 +383,14 @@ def set_extension(uuid, on):
     shell.set_strv("disabled-extensions", disabled)
 
 
+def extension_loaded(uuid):
+    """O GNOME só carrega extensões novas depois de sair e entrar de novo na sessão."""
+    try:
+        return subprocess.run(["gnome-extensions", "info", uuid], capture_output=True).returncode == 0
+    except OSError:
+        return True
+
+
 def extension_enabled(uuid):
     return uuid in settings("org.gnome.shell").get_strv("enabled-extensions")
 
@@ -625,7 +633,7 @@ class App(Adw.Application):
                                            active=extension_enabled(WIDGET_EXT))
         self.widget_switch.add_prefix(Gtk.Image(icon_name="image-x-generic-symbolic"))
         self.widget_switch.connect("notify::active",
-                                   lambda row, _p: set_extension(WIDGET_EXT, row.get_active()))
+                                   lambda row, _p: self.on_widget_ext(WIDGET_EXT, row.get_active()))
         widget_group.add(self.widget_switch)
 
         self.fotos_row = Adw.ActionRow(title="Fotos")
@@ -753,7 +761,13 @@ class App(Adw.Application):
     def on_mesa_widget(self, row, _pspec, key):
         self.mesa_settings.set_boolean(key, row.get_active())
         # A extensão só fica ligada com algum widget escolhido (nada rodando à toa)
-        set_extension(MESA_EXT, any(self.mesa_settings.get_boolean(k) for k, *_ in MESA_WIDGETS))
+        self.on_widget_ext(MESA_EXT, any(self.mesa_settings.get_boolean(k) for k, *_ in MESA_WIDGETS))
+
+    def on_widget_ext(self, uuid, on):
+        set_extension(uuid, on)
+        if on and not extension_loaded(uuid):
+            self.toast.add_toast(Adw.Toast(title="Saia e entre de novo na sessão para o widget aparecer",
+                                           timeout=6))
 
     def on_widget_combo(self, combo, _pspec, key, options, getter):
         if self.widget_settings:

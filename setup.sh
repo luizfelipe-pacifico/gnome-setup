@@ -239,6 +239,8 @@ done
 # Nome antigo do atalho da Aparência (o dock não achava o ícone com ele aberto)
 sudo rm -f /usr/local/share/applications/seletor-de-tema.desktop
 sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps "$REPO_DIR"/icons/*.svg
+# Sem atualizar o cache, um cache antigo esconde os ícones novos (o Upscale 4K ficava sem ícone)
+sudo gtk-update-icon-cache -qtf /usr/local/share/icons/hicolor 2>/dev/null || true
 sudo install -Dm644 -t /usr/share/backgrounds/seletor-de-tema "$REPO_DIR"/wallpapers/*.jpg
 # Cópia na pasta pessoal (~/wallpapers) para achar e usar fácil; não sobrescreve nem apaga nada
 mkdir -p "$HOME/wallpapers" && cp -n "$REPO_DIR"/wallpapers/*.jpg "$HOME/wallpapers/"

@@ -6,6 +6,12 @@ set -uo pipefail
 # UPSCALE_SILENCIOSO=1 (testes): sem notificação e sem abrir o resultado
 avisar() { [ -z "${UPSCALE_SILENCIOSO:-}" ] && notify-send -a "Upscale 4K" -i upscale-4k "$@" 2>/dev/null || echo "$*"; }
 command -v magick >/dev/null || { avisar "Upscale 4K" "Falta o ImageMagick: sudo pacman -S imagemagick"; exit 1; }
+# Aberto pelo menu de apps (sem imagem): pede as imagens numa janela
+if [ $# -eq 0 ] && [ -z "${UPSCALE_SILENCIOSO:-}" ] && command -v zenity >/dev/null; then
+  escolhidas=$(zenity --file-selection --multiple --separator=$'\n' --title="Upscale 4K: escolha as imagens" \
+    --file-filter="Imagens | *.jpg *.jpeg *.png *.webp *.bmp *.tif *.tiff *.gif *.avif *.heic *.heif" 2>/dev/null) || exit 0
+  mapfile -t escolhidas <<<"$escolhidas"; set -- "${escolhidas[@]}"
+fi
 [ $# -gt 0 ] || { echo "Uso: upscale-4k imagem [imagem...]"; exit 1; }
 
 feitos=()

@@ -71,7 +71,7 @@ Calculadora, Calendário, Relógios, Clima, Mapas, Música, Fotos (Loupe), Víde
 Câmera, Scanner, Discos, Uso do disco, Logs, Monitor do sistema, Gerenciador de Extensões,
 **Papers** (leitor de PDF), **Apostrophe** (leitor/editor de Markdown), **Web** (o navegador
 do GNOME, que no estilo Mac fica parecido com o Safari) e mais. Também instala
-PipeWire, Bluetooth, firewall (`ufw` + Gufw), Timeshift (backups), `fwupd` (firmware) e acesso a
+PipeWire, Bluetooth, firewall (`ufw`, sempre ligado), Timeshift (backups), `fwupd` (firmware) e acesso a
 Google Drive / OneDrive pelo Arquivos (Contas Online).
 
 **Meus apps**
@@ -81,6 +81,7 @@ Google Drive / OneDrive pelo Arquivos (Contas Online).
 | Aparência | No menu do pé do GNOME: GNOME ou estilo Mac, claro ou escuro (abaixo), e o widget de fotos |
 | Monitor de Temperatura | Temperatura, ventoinha, CPU, RAM, bateria e troca do modo de energia. Funciona com Intel, AMD e ARM. |
 | Controle do zram | Arraste para escolher quanto da RAM vira memória comprimida |
+| Firewall | Como o do macOS: liga/desliga, bloquear todas as conexões de entrada, modo invisível e a lista do que pode receber conexões (no lugar do Gufw) |
 | Ordem dos Aplicativos | Grade de apps em ordem alfabética ou aleatória |
 | Versões | Salvar versões dos projetos (Git), ver o que mudou e voltar atrás |
 | Relatórios de crash | Cada programa que trava gera um relatório legível em `/var/log/crash-reports` |
@@ -103,8 +104,9 @@ os próprios botões.
 - ícones dos apps nativos no formato do Mac, sem copiar os da Apple. Console, Monitor,
   Calculadora, Editor de Texto, Música e Lixeira ficam no estilo Mac. Programas (sacola),
   Contatos, Clima, Discos, Câmera e Extensões usam desenhos coloridos. Web (bússola sobre um globo),
-  Arquivos (gaveteiro), Firewall (parede de tijolos), Firefox, Vim e Vicinae têm desenho próprio
-  no estilo da sacola: o quadrado arredondado é o próprio objeto, sem nada colado em cima. Bateria, rede, volume e apps de fora continuam como são.
+  Arquivos (gaveteiro), Vim e Vicinae têm desenho próprio no estilo da sacola: o quadrado
+  arredondado é o próprio objeto, sem nada colado em cima. O Firefox fica com a raposa no globo,
+  no azul do Developer Edition. Bateria, rede, volume e apps de fora continuam como são.
 - Calendário com a data de hoje no ícone (mistura do calendário da Apple e da Samsung),
   atualizado todo dia
 - Arquivos por dentro: pastas no estilo Mac e barra lateral como a do Finder

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Firewall
+Comment=Escolha o que pode receber conexões da internet e da rede
+Exec=/usr/local/bin/firewall
+Icon=firewall
+Categories=System;Settings;Security;
+Keywords=firewall;ufw;rede;segurança;portas;conexões;
+StartupWMClass=local.luizfelipe.Firewall

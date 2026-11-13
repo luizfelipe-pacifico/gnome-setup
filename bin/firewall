@@ -1,0 +1,283 @@
+#!/usr/bin/env python3
+"""Firewall: liga o ufw e escolhe o que pode receber conexões, como o Firewall do macOS."""
+import configparser
+import glob
+import os
+import re
+import subprocess
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, GLib, Gtk  # noqa: E402
+
+HELPER = next((p for p in ["/usr/local/bin/firewall-aplicar",
+                           os.path.join(os.path.dirname(os.path.realpath(__file__)), "firewall-aplicar")]
+               if os.path.exists(p)), "firewall-aplicar")
+QUALQUER = ("0.0.0.0/0", "::/0")
+PROTOCOLOS = [("ambos", "TCP e UDP"), ("tcp", "TCP"), ("udp", "UDP")]
+
+
+def ler(caminho, padrao=""):
+    try:
+        with open(caminho) as f:
+            return f.read()
+    except OSError:
+        return padrao
+
+
+def ligado():
+    return re.search(r"^ENABLED=yes", ler("/etc/ufw/ufw.conf"), re.M) is not None
+
+
+def invisivel():
+    return re.search(r"^-A ufw-before-input -p icmp --icmp-type echo-request -j DROP$",
+                     ler("/etc/ufw/before.rules"), re.M) is not None
+
+
+def regras():
+    """(bloquear tudo?, regras simples, regras avançadas) lidas do user.rules e user6.rules.
+
+    Simples = permitir um app ou uma porta vindo de qualquer lugar; viram linhas com o botão −.
+    """
+    bloquear, simples, avancadas = False, {}, {}
+    for arquivo in ("/etc/ufw/user.rules", "/etc/ufw/user6.rules"):
+        for linha in ler(arquivo).splitlines():
+            if not linha.startswith("### tuple ###"):
+                continue
+            c = [p for p in linha.split()[3:] if not p.startswith("comment=")]
+            if len(c) < 7:
+                continue
+            acao, proto, dport, dst, sport, src = c[:6]
+            app = c[6].replace("%20", " ") if len(c) >= 9 and c[6] != "-" else None
+            direcao = c[-1]
+            de_qualquer = dst in QUALQUER and src in QUALQUER and sport == "any" and direcao == "in"
+            if acao == "deny" and de_qualquer and proto == "any" and dport == "any" and not app:
+                bloquear = True
+            elif acao == "allow" and de_qualquer and app:
+                simples[("app", app, "")] = app
+            elif acao == "allow" and de_qualquer and dport.isdigit() and proto in ("tcp", "udp", "any"):
+                p = "ambos" if proto == "any" else proto
+                simples[("porta", dport, p)] = f"Porta {dport}" + ("" if p == "ambos" else f" ({p.upper()})")
+            else:
+                texto = " ".join(c).replace("%20", " ")
+                avancadas[texto] = texto
+    return bloquear, simples, list(avancadas)
+
+
+def perfis():
+    """Apps que o ufw conhece (/etc/ufw/applications.d): [(nome, título, portas)]."""
+    lista = []
+    for arquivo in sorted(glob.glob("/etc/ufw/applications.d/*")):
+        cp = configparser.ConfigParser(strict=False, interpolation=None)
+        try:
+            cp.read(arquivo)
+        except configparser.Error:
+            continue
+        for nome in cp.sections():
+            lista.append((nome, cp[nome].get("title", nome), cp[nome].get("ports", "")))
+    return sorted(lista, key=lambda p: p[1].lower())
+
+
+class NovaRegra(Adw.Dialog):
+    """Folha do + : escolher um app conhecido ou digitar uma porta."""
+
+    def __init__(self, janela):
+        super().__init__(title="Permitir conexões de entrada", content_width=420)
+        self.janela = janela
+        self.perfis = perfis()
+
+        barra = Adw.ToolbarView()
+        topo = Adw.HeaderBar(show_end_title_buttons=False, show_start_title_buttons=False)
+        cancelar = Gtk.Button(label="Cancelar")
+        cancelar.connect("clicked", lambda *_: self.close())
+        topo.pack_start(cancelar)
+        self.permitir = Gtk.Button(label="Permitir")
+        self.permitir.add_css_class("suggested-action")
+        self.permitir.connect("clicked", self.confirmar)
+        topo.pack_end(self.permitir)
+        barra.add_top_bar(topo)
+
+        pagina = Adw.PreferencesPage()
+        grupo = Adw.PreferencesGroup()
+        self.tipo = Adw.ComboRow(title="Tipo", model=Gtk.StringList.new(["App ou serviço", "Porta"]))
+        self.tipo.connect("notify::selected", lambda *_: self.trocar_tipo())
+        grupo.add(self.tipo)
+        self.app = Adw.ComboRow(title="App", model=Gtk.StringList.new(
+            [f"{t} · {p}" if p else t for _, t, p in self.perfis]), enable_search=True)
+        grupo.add(self.app)
+        self.porta = Adw.EntryRow(title="Número da porta", input_purpose=Gtk.InputPurpose.DIGITS)
+        self.porta.connect("changed", lambda *_: self.validar())
+        grupo.add(self.porta)
+        self.proto = Adw.ComboRow(title="Protocolo", model=Gtk.StringList.new([d for _, d in PROTOCOLOS]))
+        grupo.add(self.proto)
+        pagina.add(grupo)
+        barra.set_content(pagina)
+        self.set_child(barra)
+        if not self.perfis:
+            self.tipo.set_selected(1)
+        self.trocar_tipo()
+
+    def trocar_tipo(self):
+        app = self.tipo.get_selected() == 0
+        self.app.set_visible(app)
+        self.porta.set_visible(not app)
+        self.proto.set_visible(not app)
+        self.validar()
+
+    def validar(self):
+        if self.tipo.get_selected() == 0:
+            ok = bool(self.perfis)
+        else:
+            texto = self.porta.get_text()
+            ok = texto.isdigit() and 1 <= int(texto) <= 65535
+        self.permitir.set_sensitive(ok)
+
+    def confirmar(self, _botao):
+        if self.tipo.get_selected() == 0:
+            args = ["permitir", "app", self.perfis[self.app.get_selected()][0]]
+        else:
+            args = ["permitir", "porta", self.porta.get_text(), PROTOCOLOS[self.proto.get_selected()][0]]
+        self.close()
+        self.janela.executar(args, "Conexões de entrada permitidas")
+
+
+class Janela(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="Firewall", default_width=520, default_height=640)
+        self.carregando = False
+
+        self.toast = Adw.ToastOverlay()
+        barra = Adw.ToolbarView()
+        barra.add_top_bar(Adw.HeaderBar())
+        pagina = Adw.PreferencesPage()
+
+        # Interruptor principal, como no topo do Firewall do macOS
+        grupo = Adw.PreferencesGroup()
+        self.linha_firewall = Adw.SwitchRow(title="Firewall")
+        icone = Gtk.Image(icon_name="firewall", pixel_size=40)
+        self.linha_firewall.add_prefix(icone)
+        self.linha_firewall.connect("notify::active", self.mudou_firewall)
+        grupo.add(self.linha_firewall)
+        pagina.add(grupo)
+
+        opcoes = Adw.PreferencesGroup(title="Opções")
+        self.bloquear = Adw.SwitchRow(
+            title="Bloquear todas as conexões de entrada",
+            subtitle="Só passa o básico para a internet funcionar. Os itens permitidos abaixo "
+                     "também ficam bloqueados enquanto isto estiver ligado.")
+        self.bloquear.connect("notify::active", self.mudou_bloquear)
+        opcoes.add(self.bloquear)
+        self.invisivel = Adw.SwitchRow(
+            title="Ativar modo invisível",
+            subtitle="O computador não responde a ping nem a tentativas de encontrá-lo na rede.")
+        self.invisivel.connect("notify::active", self.mudou_invisivel)
+        opcoes.add(self.invisivel)
+        pagina.add(opcoes)
+        self.opcoes = opcoes
+
+        self.lista = Adw.PreferencesGroup(
+            title="Conexões de entrada permitidas",
+            description="Tudo o que não estiver aqui é bloqueado. Sair para a internet nunca é bloqueado.")
+        mais = Gtk.Button(icon_name="list-add-symbolic", valign=Gtk.Align.CENTER,
+                          tooltip_text="Permitir um app ou uma porta")
+        mais.add_css_class("flat")
+        mais.connect("clicked", lambda *_: NovaRegra(self).present(self))
+        self.lista.set_header_suffix(mais)
+        pagina.add(self.lista)
+        self.linhas = []
+
+        barra.set_content(pagina)
+        self.toast.set_child(barra)
+        self.set_content(self.toast)
+        self.recarregar()
+
+    # ---- estado
+    def recarregar(self):
+        self.carregando = True
+        ativo = ligado()
+        bloquear, simples, avancadas = regras()
+        self.linha_firewall.set_active(ativo)
+        self.linha_firewall.set_subtitle(
+            "Ativado. Apps e serviços sem permissão não recebem conexões da internet nem da rede local."
+            if ativo else "Desativado. Qualquer app pode receber conexões. Volta a ligar ao reiniciar.")
+        self.bloquear.set_active(bloquear)
+        self.invisivel.set_active(invisivel())
+        self.opcoes.set_sensitive(ativo)
+        self.lista.set_sensitive(ativo and not bloquear)
+
+        for linha in self.linhas:
+            self.lista.remove(linha)
+        self.linhas = []
+        titulos = {n: t for n, t, _ in perfis()}
+        simples = {c: titulos.get(n, n) if c[0] == "app" else n for c, n in simples.items()}
+        for chave, nome in sorted(simples.items(), key=lambda i: i[1].lower()):
+            linha = Adw.ActionRow(title=GLib.markup_escape_text(nome),
+                                  subtitle="Permitir conexões de entrada")
+            linha.add_prefix(Gtk.Image(icon_name="application-x-executable-symbolic" if chave[0] == "app"
+                                       else "network-wired-symbolic"))
+            menos = Gtk.Button(icon_name="list-remove-symbolic", valign=Gtk.Align.CENTER,
+                               tooltip_text="Remover")
+            menos.add_css_class("flat")
+            menos.connect("clicked", lambda _b, c=chave: self.executar(
+                ["remover", c[0], c[1]] + ([c[2]] if c[0] == "porta" else []), "Permissão removida"))
+            linha.add_suffix(menos)
+            self.lista.add(linha)
+            self.linhas.append(linha)
+        for texto in avancadas:
+            linha = Adw.ActionRow(title=GLib.markup_escape_text(texto),
+                                  subtitle="Regra avançada: mude pelo terminal com o ufw")
+            linha.add_prefix(Gtk.Image(icon_name="utilities-terminal-symbolic"))
+            self.lista.add(linha)
+            self.linhas.append(linha)
+        if not self.linhas:
+            vazio = Adw.ActionRow(title="Nenhum app ou porta liberado")
+            vazio.add_css_class("dim-label")
+            self.lista.add(vazio)
+            self.linhas.append(vazio)
+        self.carregando = False
+
+    # ---- interruptores
+    def mudou_firewall(self, linha, _p):
+        if not self.carregando:
+            self.executar(["ligar" if linha.get_active() else "desligar"],
+                          "Firewall ativado" if linha.get_active() else "Firewall desativado")
+
+    def mudou_bloquear(self, linha, _p):
+        if not self.carregando:
+            self.executar(["bloquear-tudo", "sim" if linha.get_active() else "nao"], "Opção atualizada")
+
+    def mudou_invisivel(self, linha, _p):
+        if not self.carregando:
+            self.executar(["invisivel", "sim" if linha.get_active() else "nao"], "Opção atualizada")
+
+    # ---- ajudante como root
+    def executar(self, args, sucesso):
+        self.set_sensitive(False)
+        proc = subprocess.Popen(["pkexec", HELPER, *args], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.PIPE, text=True)
+        GLib.child_watch_add(GLib.PRIORITY_DEFAULT, proc.pid, self.terminou, (proc, sucesso))
+
+    def terminou(self, _pid, status, dados):
+        proc, sucesso = dados
+        self.set_sensitive(True)
+        codigo = os.waitstatus_to_exitcode(status)
+        erro = proc.stderr.read().strip().splitlines()
+        if codigo == 0:
+            self.toast.add_toast(Adw.Toast(title=sucesso, timeout=3))
+        elif codigo not in (126, 127):  # 126/127: senha cancelada no pkexec
+            self.toast.add_toast(Adw.Toast(title="Não foi possível mudar" + (f": {erro[-1]}" if erro else ""),
+                                           timeout=5))
+        self.recarregar()  # volta os interruptores ao estado real se não mudou
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="local.luizfelipe.Firewall")
+        self.connect("activate", lambda app: (Gtk.Window.set_default_icon_name("firewall"),
+                                              Janela(app).present()))
+
+
+if __name__ == "__main__":
+    App().run()

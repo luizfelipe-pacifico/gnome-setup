@@ -159,7 +159,7 @@ SISTEMA=(pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber gst-plu
   gst-libav gst-plugins-ugly gst-thumbnailers
   gvfs gvfs-afc gvfs-dnssd gvfs-goa gvfs-google gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-onedrive
   gvfs-smb gvfs-wsdd ntfs-3g exfatprogs dosfstools btrfs-progs
-  bluez bluez-utils power-profiles-daemon gamemode zram-generator ufw gufw timeshift cronie
+  bluez bluez-utils power-profiles-daemon gamemode zram-generator ufw timeshift cronie
   fwupd smartmontools htop atop fastfetch jq wget curl unzip flatpak pacman-contrib
   python-gobject gtk3 gtk4 libadwaita usbutils xdg-utils)
 [ "$MULTILIB" = sim ] && SISTEMA+=(lib32-gamemode)
@@ -201,7 +201,9 @@ for s in power-profiles-daemon bluetooth fstrim.timer systemd-oomd cronie ufw \
 done
 # O atop gravando histórico a cada minuto gasta SSD à toa: fica só para usar na hora (comando atop)
 sudo systemctl disable --now atop atopacct 2>/dev/null || true
-sudo ufw enable >/dev/null 2>&1 || true
+sudo ufw --force enable >/dev/null 2>&1 || true
+# O app Firewall (estilo macOS) substitui o Gufw
+pacman -Q gufw &>/dev/null && sudo pacman -Rns --noconfirm gufw >/dev/null 2>&1 || true
 sudo systemctl start systemd-zram-setup@zram0.service 2>/dev/null || true
 ok "zram ($(grep -oP 'zram-size = \K.*' /etc/systemd/zram-generator.conf)), memória, discos, logs e firewall"
 ok "limpeza automática: pacotes velhos, logs, coredumps, cache e lixeira antigos"
@@ -210,11 +212,11 @@ ok "modos de energia (Economia/Equilibrado/Desempenho) e GameMode ligando o Dese
 # ---------------------------------------------------------------- meus apps
 etapa "Instalando meus apps"
 APPS=(seletor-de-tema apply-macos-look.sh aparencia-aplicar-todos monitor-temp projetos-git
-      gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar limpeza-sistema
-      icone-calendario enxugar-sistema vicinae-leve)
+      gnome-app-grid-order crash-report gamemode-profile controle-zram zram-aplicar firewall
+      firewall-aplicar limpeza-sistema icone-calendario enxugar-sistema vicinae-leve)
 sudo install -m755 "${APPS[@]/#/$REPO_DIR/bin/}" /usr/local/bin/
 for d in seletor-de-tema local.luizfelipe.MonitorTemp local.luizfelipe.ProjetosGit \
-         io.github.luizfelipe.AppGridOrder local.controle.zram; do
+         io.github.luizfelipe.AppGridOrder local.controle.zram local.luizfelipe.Firewall; do
   sed 's|^Exec=/home/[^/]*/\.local/bin/|Exec=/usr/local/bin/|' "$REPO_DIR/applications/$d.desktop" |
     sudo install -Dm644 /dev/stdin "/usr/local/share/applications/$d.desktop"
 done
@@ -228,7 +230,7 @@ sudo update-desktop-database -q /usr/local/share/applications 2>/dev/null || tru
 grep -qs gamemode-profile "$HOME/.config/gamemode.ini" && rm -f "$HOME/.config/gamemode.ini"
 mkdir -p "$HOME/.config/app-grid-order"
 [ -f "$HOME/.config/app-grid-order/mode" ] || echo alphabetical > "$HOME/.config/app-grid-order/mode"
-ok "Aparência, Monitor, Controle do zram, Versões, Ordem dos Aplicativos, relatórios de crash"
+ok "Aparência, Monitor, Controle do zram, Firewall, Versões, Ordem dos Aplicativos, relatórios de crash"
 
 # ---------------------------------------------------------------- extensões
 etapa "Extensões do GNOME"

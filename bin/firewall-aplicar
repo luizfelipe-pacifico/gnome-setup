@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Muda o firewall (ufw). Roda como root (pkexec, pelo app Firewall).
+# Uso: firewall-aplicar ligar | desligar
+#      firewall-aplicar bloquear-tudo sim|nao
+#      firewall-aplicar invisivel sim|nao
+#      firewall-aplicar permitir app "<perfil do ufw>" | permitir porta <número> tcp|udp|ambos
+#      firewall-aplicar remover app "<perfil do ufw>" | remover porta <número> tcp|udp|ambos
+set -e
+export LC_ALL=C
+
+sim_nao() { case "$1" in sim|nao) ;; *) echo "use sim ou nao" >&2; exit 1 ;; esac; }
+# Regra de app ou de porta, sempre conferida antes de chegar no ufw
+regra() {
+  case "$1" in
+    app)
+      [ -n "$2" ] && ufw app info "$2" >/dev/null 2>&1 || { echo "app desconhecido: $2" >&2; exit 1; }
+      REGRA=("$2") ;;
+    porta)
+      [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ] || { echo "porta inválida" >&2; exit 1; }
+      case "$3" in tcp|udp) REGRA=("$2/$3") ;; ambos) REGRA=("$2") ;; *) echo "protocolo inválido" >&2; exit 1 ;; esac ;;
+    *) echo "tipo inválido" >&2; exit 1 ;;
+  esac
+}
+
+case "$1" in
+  ligar) ufw --force enable ;;
+  desligar) ufw disable ;;
+  bloquear-tudo)
+    # Uma regra "negar tudo" antes das outras: as permissões ficam guardadas e voltam ao desligar.
+    # Respostas do que o computador pediu e o DHCP continuam passando (before.rules do ufw).
+    sim_nao "$2"
+    ufw delete deny in from any >/dev/null 2>&1 || true
+    if [ "$2" = sim ]; then
+      if ufw status numbered | grep -q '^\['; then ufw prepend deny in from any
+      else ufw deny in from any; fi
+    fi ;;
+  invisivel)
+    # Modo invisível: não responde a ping (o resto que não é permitido já é descartado em silêncio)
+    sim_nao "$2"
+    [ "$2" = sim ] && DE=ACCEPT PARA=DROP || { DE=DROP PARA=ACCEPT; }
+    sed -i "s/^\(-A ufw-before-input -p icmp --icmp-type echo-request -j\) $DE$/\1 $PARA/" /etc/ufw/before.rules
+    sed -i "s/^\(-A ufw6-before-input -p icmpv6 --icmpv6-type echo-request -j\) $DE$/\1 $PARA/" /etc/ufw/before6.rules
+    ufw status | grep -q 'Status: active' && ufw reload >/dev/null ;;
+  permitir) regra "$2" "$3" "$4"; ufw allow "${REGRA[@]}" ;;
+  remover) regra "$2" "$3" "$4"; ufw delete allow "${REGRA[@]}" ;;
+  *) echo "comando inválido" >&2; exit 1 ;;
+esac

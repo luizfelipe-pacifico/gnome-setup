@@ -19,8 +19,9 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 #    e sem copiar a Apple): Programas = sacola azul, Contatos, Clima,
 #    Discos, Câmera, Extensões
 #  - desenhos próprios no estilo da sacola do Programas (o quadrado é o próprio objeto, nada colado
-#    em cima): Web (bússola sobre globo), Arquivos (gaveteiro), Firewall (parede de tijolos),
-#    Firefox (raposa em volta do planeta), Vim (placa verde com o V) e Vicinae (lua no céu escuro)
+#    em cima): Web (bússola sobre globo), Arquivos (gaveteiro), Vim (placa verde com o V) e
+#    Vicinae (lua no céu escuro)
+#  - Firefox: a raposa no globo de sempre, no azul do Developer Edition e sem moldura
 #  - Calendário: ícone próprio com a data de hoje (icone-calendario, atualizado todo dia)
 #  - pastas no estilo Mac dentro do Arquivos (Documentos, Downloads, Música, Imagens, Código...)
 #  - lixeira clara no tema claro e escura no tema escuro (tema "MacApps-dark", que herda o MacApps)
@@ -29,13 +30,13 @@ yay -S --needed --noconfirm "${PKGS[@]}"
 # ícones (7,7 MB) é baixado, numa pasta temporária apagada no fim.
 # Para mudar a escolha, edite as listas abaixo e aumente MAC_VERSAO.
 MAC=/usr/local/share/icons/MacApps
-MAC_VERSAO=12
+MAC_VERSAO=13
 if [ "$(cat "$MAC/.versao" 2>/dev/null)" != "$MAC_VERSAO" ]; then
   TMP=$(mktemp -d)
   curl -fsSL https://github.com/vinceliuice/WhiteSur-icon-theme/archive/refs/heads/master.tar.gz |
     tar xz -C "$TMP" --strip-components=1
   python3 -I - "$TMP" "$TMP/MacApps" <<'PY'
-import os, shutil, sys
+import os, re, shutil, sys
 
 SRC, OUT = sys.argv[1:3]
 MAC = ["org.gnome.Console", "org.gnome.SystemMonitor", "utilities-system-monitor", "org.gnome.tweaks",
@@ -127,33 +128,6 @@ ARQUIVOS = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect x="50" y="88" width="28" height="8" rx="4" fill="#fff" filter="url(#leve)"/>
 </svg>
 """
-# Firewall: o quadrado é uma parede de tijolos
-FIREWALL = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ff8a50"/><stop offset="1" stop-color="#e2432c"/>
-    </linearGradient>
-    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
-    </filter>
-    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
-    </filter>
-    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
-  </defs>
-  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fundo)" filter="url(#sombra)"/>
-  <g clip-path="url(#forma)" stroke="#ffe3d6" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9">
-    <line x1="0" y1="36" x2="128" y2="36"/><line x1="0" y1="64" x2="128" y2="64"/><line x1="0" y1="92" x2="128" y2="92"/>
-    <line x1="44" y1="8" x2="44" y2="36"/><line x1="86" y1="8" x2="86" y2="36"/>
-    <line x1="24" y1="36" x2="24" y2="64"/><line x1="64" y1="36" x2="64" y2="64"/><line x1="104" y1="36" x2="104" y2="64"/>
-    <line x1="44" y1="64" x2="44" y2="92"/><line x1="86" y1="64" x2="86" y2="92"/>
-    <line x1="24" y1="92" x2="24" y2="120"/><line x1="64" y1="92" x2="64" y2="120"/><line x1="104" y1="92" x2="104" y2="120"/>
-  </g>
-  <g clip-path="url(#forma)" fill="#fff" opacity="0.18">
-    <rect x="8" y="8" width="112" height="28"/>
-  </g>
-</svg>
-"""
 # Vim: o quadrado é a placa verde com o V
 VIM = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
@@ -204,43 +178,7 @@ VICINAE = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <circle cx="64" cy="64" r="38" fill="url(#lua)" mask="url(#crescente)" filter="url(#leve)"/>
 </svg>
 """
-# Firefox: o quadrado é o fogo da raposa, que contorna o planeta roxo
-FIREFOX_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd43b"/><stop offset="1" stop-color="#e3166e"/>
-    </linearGradient>
-    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
-    </filter>
-    <filter id="leve" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
-    </filter>
-    <clipPath id="forma"><rect x="8" y="8" width="112" height="112" rx="25"/></clipPath>
-    <linearGradient id="fogo" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffe14d"/><stop offset="0.45" stop-color="#ff8a1f"/><stop offset="1" stop-color="#e3166e"/>
-    </linearGradient>
-    <radialGradient id="planeta" cx="0.4" cy="0.35" r="0.75">
-      <stop offset="0" stop-color="#9a7bff"/><stop offset="0.6" stop-color="#5b2fd6"/><stop offset="1" stop-color="#2b1478"/>
-    </radialGradient>
-    <linearGradient id="cauda" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff3a8"/><stop offset="1" stop-color="#ffb02e"/>
-    </linearGradient>
-    <linearGradient id="raposa" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffb21f"/><stop offset="0.6" stop-color="#ff5a2a"/><stop offset="1" stop-color="#d9105f"/>
-    </linearGradient>
-    <mask id="corpo">
-      <circle cx="62" cy="68" r="44" fill="#fff"/>
-      <circle cx="68" cy="60" r="33" fill="#000"/>
-    </mask>
-  </defs>
-  <rect x="8" y="8" width="112" height="112" rx="25" fill="url(#fogo)" filter="url(#sombra)"/>
-  <circle cx="68" cy="62" r="30" fill="url(#planeta)" filter="url(#leve)"/>
-  <circle cx="62" cy="68" r="44" fill="url(#raposa)" mask="url(#corpo)" filter="url(#leve)"/>
-  <path d="M34 50 C40 30 62 20 82 26 C98 31 106 46 104 62 C99 50 90 42 78 40 C68 38 58 40 50 46 C44 50 38 52 34 50 Z"
-        fill="url(#cauda)" filter="url(#leve)"/>
-</svg>
-"""
+# Firefox: a raposa no globo, no azul do Developer Edition (logo do WhiteSur sem a moldura branca)
 FIREFOX = ["firefox", "firefox-developer-edition", "org.mozilla.firefox"]
 LIXEIRA = ["user-trash", "user-trash-full"]
 
@@ -270,14 +208,21 @@ with open(f"{OUT}/apps/scalable/org.gnome.Epiphany.svg", "w") as f:
     f.write(WEB)
 with open(f"{OUT}/apps/scalable/org.gnome.Nautilus.svg", "w") as f:
     f.write(ARQUIVOS)
-with open(f"{OUT}/apps/scalable/gufw.svg", "w") as f:
-    f.write(FIREWALL)
 for name, svg in (("gvim", VIM), ("vim", VIM), ("vicinae", VICINAE)):
     with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
         f.write(svg)
-for name in FIREFOX:
-    with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
-        f.write(FIREFOX_SVG)
+if path := whitesur("apps", "firefox-developer-edition"):
+    with open(path) as f:
+        logo = f.read()
+    fim = logo.index("</defs>") + 7
+    corpo = re.sub(r"<image\b[^>]*/>", "", logo[fim:], count=1)          # sombra da moldura
+    corpo = re.sub(r'<rect width="14.817"[^>]*/>', "", corpo, count=1)    # moldura branca
+    c = 8.4665  # centro do desenho: a logo cresce um pouco para ocupar o lugar da moldura
+    logo = (logo[:fim] + f'<g transform="translate({c} {c}) scale(1.18) translate({-c} {-c})">'
+            + corpo[:corpo.rindex("</svg>")] + "</g></svg>")
+    for name in FIREFOX:
+        with open(f"{OUT}/apps/scalable/{name}.svg", "w") as f:
+            f.write(logo)
 for name in LIXEIRA:
     if path := whitesur("places", name):
         shutil.copy(path, f"{OUT}/places/scalable/{name}.svg")

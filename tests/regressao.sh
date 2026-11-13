@@ -134,7 +134,7 @@ checa "pessoal/ não é instalado" bash -c '! grep -nE "pessoal/" setup.sh insta
 checa "configurações sem papel de parede de /home" bash -c '! grep -nE "file:///home" gnome/configuracoes.ini'
 
 echo "== Arquivos que o setup copia existem"
-for f in $(grep -oE '\$(REPO_DIR|E)/[A-Za-z0-9_./{},-]+' setup.sh | sort -u); do
+for f in $(grep -hoE '\$(REPO_DIR|E)/[A-Za-z0-9_./{},-]+' setup.sh bin/aparencia-todos-usuarios | sort -u); do
   f=${f/\$REPO_DIR\//}; f=${f/\$E\//sistema/etc/}
   [[ $f == */ || ( $f == *'}'* && $f != *'{'* ) ]] && continue   # expansões como ${APPS[@]/#/...}
   for g in $(eval echo "$f"); do

@@ -39,6 +39,12 @@ checa "yay/pacman escondidos usam --noconfirm ou -Y" bash -c '
 # 2026-11-12: "systemd-detect-virt || echo none" imprimia "none" duas vezes fora de VM
 checa "VIRT sem none duplicado" bash -c '! grep -nE "systemd-detect-virt[^|]*\|\|[[:space:]]*echo" setup.sh'
 
+# 2026-11-13: rodar o setup de novo (para atualizar) recriava o atalho e a escolha de
+# aparência abria outra vez. O atalho só é criado se a escolha inicial nunca foi feita.
+checa "escolha de aparência só uma vez" bash -c '
+  grep -q "escolha-inicial-feita" setup.sh &&
+  grep -B3 "escolher-tema.desktop\" <<" setup.sh | grep -q "ESCOLHA_FEITA"'
+
 echo "== Serve para qualquer pessoa"
 # Navegador é escolha de cada um: o setup não instala nenhum
 checa "nenhum navegador instalado" bash -c '

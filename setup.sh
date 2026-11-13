@@ -287,16 +287,20 @@ ok "energia, touchpad, dock, pastas de apps, atalhos e extensões"
 etapa "Estilização para todos os usuários (contas atuais, contas novas e tela de login)"
 sessao /usr/local/bin/aparencia-todos-usuarios || aviso "a estilização de algum usuário falhou"
 
-# No primeiro login depois de reiniciar, abre o Seletor de Tema para escolher a aparência
-mkdir -p "$HOME/.config/autostart"
-cat > "$HOME/.config/autostart/escolher-tema.desktop" <<'EOF'
+# No primeiro login depois de reiniciar, abre o Seletor de Tema para escolher a aparência.
+# Só uma vez: ao abrir, ele marca a escolha como feita, e rodar o setup de novo não recria o atalho
+ESCOLHA_FEITA="$HOME/.config/seletor-de-tema/escolha-inicial-feita"
+if [ ! -e "$ESCOLHA_FEITA" ]; then
+  mkdir -p "$HOME/.config/autostart"
+  cat > "$HOME/.config/autostart/escolher-tema.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Escolher tema
-Exec=sh -c 'rm -f "$HOME/.config/autostart/escolher-tema.desktop"; exec /usr/local/bin/seletor-de-tema'
+Exec=sh -c 'mkdir -p "$HOME/.config/seletor-de-tema"; touch "$HOME/.config/seletor-de-tema/escolha-inicial-feita"; rm -f "$HOME/.config/autostart/escolher-tema.desktop"; exec /usr/local/bin/seletor-de-tema'
 X-GNOME-Autostart-Delay=3
 NoDisplay=true
 EOF
+fi
 
 # Sobras da instalação
 yay -Yc --noconfirm >/dev/null 2>&1 || true          # dependências de compilação que ficaram sem uso

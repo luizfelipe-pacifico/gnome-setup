@@ -19,6 +19,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-se
 No final aparece uma janela para **reiniciar**. No primeiro login depois disso, a janela
 **Aparência** abre sozinha para você escolher: GNOME claro/escuro ou estilo Mac claro/escuro.
 Depois ela fica no menu do pé do GNOME (canto superior esquerdo) → **Aparência…**.
+Essa janela abre sozinha **uma única vez**: rodar o comando de novo para atualizar não a
+abre outra vez. Os papéis de parede vêm junto com o repositório e ficam em
+`/usr/share/backgrounds/seletor-de-tema` (pasta do sistema, valem para todas as contas); o
+seu papel de parede atual nunca é trocado.
 
 Para **atualizar** depois, rode o mesmo comando: ele baixa a versão nova e só faz o que falta.
 O log fica em `~/.cache/gnome-setup-instalacao.log`.

@@ -23,6 +23,19 @@ Depois ela fica no menu do pé do GNOME (canto superior esquerdo) → **Aparênc
 Para **atualizar** depois, rode o mesmo comando: ele baixa a versão nova e só faz o que falta.
 O log fica em `~/.cache/gnome-setup-instalacao.log`.
 
+### Só a estilização
+
+Já tem um Arch Linux (ou derivado) com GNOME e quer só o visual? Este comando instala a
+**Aparência** (estilo Mac ou GNOME, claro ou escuro), o dock, o menu do pé do GNOME e o app
+**Firewall**, sem mexer em drivers, pacman nem desempenho:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/estilo.sh)
+```
+
+No fim a Aparência abre para você escolher o estilo. Saia e entre na sessão para o dock e o
+menu do pé do GNOME aparecerem. Rodar de novo atualiza.
+
 ## O que o comando faz
 
 **Terminal e pacotes**
@@ -128,6 +141,7 @@ os próprios botões.
 
 ```
 instalar.sh            comando de uma linha (baixa o repositório e roda o setup)
+estilo.sh              comando de uma linha só da estilização (roda o bin/instalar-seletor-de-tema)
 setup.sh               instalação completa, adaptada ao hardware
 bin/                   meus apps e scripts (vão para /usr/local/bin)
 applications/, icons/  atalhos e ícones dos apps
@@ -139,6 +153,6 @@ sistema/               arquivos de sistema: desempenho, zram, discos, limpeza, c
 pessoal/               coisas só da minha máquina (RPCS3, controle de PS4); o setup não instala
 ```
 
-Para atualizar só a aparência e o app Firewall sem rodar tudo: `bin/instalar-seletor-de-tema`.
+Para atualizar só a aparência e o app Firewall sem rodar tudo: `bin/instalar-seletor-de-tema` (é o que o `estilo.sh` roda).
 
 Requisitos: Arch Linux (ou derivado com pacman) e GNOME. Testado no GNOME 51.

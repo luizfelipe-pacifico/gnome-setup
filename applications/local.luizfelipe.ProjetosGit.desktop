@@ -2,7 +2,7 @@
 Type=Application
 Name=Versões
 Comment=Salve versões dos seus projetos, veja o que mudou e volte atrás quando precisar
-Exec=/home/luizfelipe/.local/bin/projetos-git
+Exec=/usr/local/bin/projetos-git
 Icon=versoes
 Categories=Development;
 Keywords=git;versão;versões;projetos;histórico;backup;

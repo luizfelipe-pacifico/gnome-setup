@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Seletor de aparência: estilo Apple (macOS) claro/escuro ou GNOME padrão
-# Uso: seletor-de-tema [--reaplicar | --tema apple-dark|apple-light|gnome-dark|gnome-light]
+# Uso: seletor-de-tema [--reaplicar | --atual | --tema apple-dark|apple-light|gnome-dark|gnome-light]
 import glob
 import hashlib
 import json
@@ -804,6 +804,8 @@ class App(Adw.Application):
 if __name__ == "__main__":
     if sys.argv[1:2] == ["--reaplicar"]:
         apply_theme(THEMES[current_theme()])  # usado pelo instalar-seletor-de-tema
+    elif sys.argv[1:2] == ["--atual"]:
+        print(current_theme())
     elif sys.argv[1:2] == ["--tema"] and sys.argv[2:3] and sys.argv[2] in THEMES:
         apply_theme(THEMES[sys.argv[2]])
     else:

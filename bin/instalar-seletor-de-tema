@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
-# Atualiza só o Seletor de Tema, o app Firewall e os componentes do estilo Apple (sem rodar o setup inteiro).
-# Rode como seu usuário, sem sudo: ele pede a senha quando precisa.
-#   ~/meus-scripts/bin/instalar-seletor-de-tema
+# Comando de estilização: instala a Aparência (estilo Apple ou GNOME), o app Firewall e os
+# componentes do estilo Apple, sem rodar o setup inteiro. Funciona em qualquer Arch Linux
+# (ou derivado) com GNOME. Rode como seu usuário, sem sudo: ele pede a senha quando precisa.
+#   bash <(curl -fsSL https://raw.githubusercontent.com/luizfelipe-pacifico/gnome-setup/main/estilo.sh)
+# ou, com o repositório baixado:  bin/instalar-seletor-de-tema
 set -e
 [ "$EUID" -eq 0 ] && { echo "Rode sem sudo (o yay não roda como root). A senha é pedida quando precisar."; exit 1; }
+command -v pacman >/dev/null || { echo "Este comando é para Arch Linux e derivados (precisa do pacman)."; exit 1; }
+command -v gnome-shell >/dev/null || { echo "Este comando é para o GNOME (gnome-shell não encontrado)."; exit 1; }
 cd "$(dirname "$(readlink -f "$0")")/.."
+
+echo "==> O que a Aparência e o Firewall precisam"
+sudo pacman -S --needed --noconfirm base-devel git curl python-gobject python-cairo gtk3 gtk4 \
+  libadwaita librsvg unzip ufw
+if ! command -v yay >/dev/null; then   # pacotes do AUR do estilo Apple (vidro, ponteiro)
+  TMP=$(mktemp -d)
+  git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$TMP/yay-bin"
+  (cd "$TMP/yay-bin" && makepkg -si --noconfirm)
+  rm -rf "$TMP"
+fi
 
 echo "==> Copiando o app para o sistema"
 sudo install -m 755 bin/seletor-de-tema bin/apply-macos-look.sh bin/aparencia-aplicar-todos \
@@ -26,7 +40,6 @@ rm -f "$HOME/.local/share/applications/seletor-de-tema.desktop" \
       "$HOME/.local/share/icons/hicolor/scalable/apps/seletor-de-tema.svg"
 
 echo "==> App Firewall (estilo macOS), no lugar do Gufw"
-pacman -Q ufw &>/dev/null || sudo pacman -S --needed --noconfirm ufw
 sudo install -m 755 bin/firewall bin/firewall-aplicar /usr/local/bin/
 sudo install -Dm 644 icons/firewall.svg /usr/local/share/icons/hicolor/scalable/apps/firewall.svg
 sudo install -Dm 644 applications/local.luizfelipe.Firewall.desktop \
@@ -34,6 +47,8 @@ sudo install -Dm 644 applications/local.luizfelipe.Firewall.desktop \
 sudo install -Dm 644 sistema/etc/systemd/system/ufw.service.d/sempre-ativo.conf \
   /etc/systemd/system/ufw.service.d/sempre-ativo.conf
 sudo systemctl daemon-reload && sudo systemctl enable ufw >/dev/null 2>&1 || true
+# Quem acessa este computador por SSH continua conseguindo depois de o firewall ligar
+systemctl is-active -q sshd 2>/dev/null && sudo ufw allow ssh >/dev/null 2>&1 || true
 sudo ufw --force enable >/dev/null 2>&1 || true
 pacman -Q gufw &>/dev/null && sudo pacman -Rns --noconfirm gufw >/dev/null 2>&1 || true
 sudo update-desktop-database -q /usr/local/share/applications || true
@@ -42,7 +57,35 @@ sudo gtk-update-icon-cache -q -t /usr/local/share/icons/hicolor 2>/dev/null || t
 echo "==> Instalando pacotes e extensões do estilo Apple"
 /usr/local/bin/apply-macos-look.sh
 
+echo "==> Dock e menu do pé do GNOME (onde fica o Aparência…)"
+SHELL_VER=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
+extensao() {
+  local url tmp
+  url=$(curl -fsSL "https://extensions.gnome.org/extension-info/?uuid=$1&shell_version=$SHELL_VER" |
+        python3 -c 'import json,sys; print(json.load(sys.stdin)["download_url"])' 2>/dev/null) ||
+    { echo "  $1 não tem versão para o GNOME $SHELL_VER"; return 0; }
+  tmp=$(mktemp -d)
+  curl -fsSL "https://extensions.gnome.org$url" -o "$tmp/ext.zip" && gnome-extensions install --force "$tmp/ext.zip"
+  rm -rf "$tmp"
+}
+for uuid in dash-to-dock@micxgx.gmail.com kiwimenu@kemma; do
+  # Já instalada (pelo usuário ou por pacote): fica como está
+  [ -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ] || [ -d "/usr/share/gnome-shell/extensions/$uuid" ] ||
+    extensao "$uuid"
+done
+python3 - <<'LIGAR'
+from gi.repository import Gio
+s = Gio.Settings.new("org.gnome.shell")
+s.set_boolean("disable-user-extensions", False)
+for uuid in ("dash-to-dock@micxgx.gmail.com", "kiwimenu@kemma"):
+    s.set_strv("disabled-extensions", [u for u in s.get_strv("disabled-extensions") if u != uuid])
+    if uuid not in s.get_strv("enabled-extensions"):
+        s.set_strv("enabled-extensions", s.get_strv("enabled-extensions") + [uuid])
+Gio.Settings.sync()
+LIGAR
+
 echo "==> Extensões do repositório, temas do Vicinae e ícone do Calendário"
+mkdir -p "$HOME/.local/share/gnome-shell/extensions"
 for d in extensoes/*/; do
   rm -rf "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
   cp -r "$d" "$HOME/.local/share/gnome-shell/extensions/"
@@ -63,10 +106,15 @@ echo "==> Reaplicando o tema atual"
 
 echo "==> Desempenho do que o gnome-setup colocou: menos RAM parado e menos SSD"
 # Busca (Vicinae) leve: sem o motor Node e sem indexar as pastas ocultas
-/usr/local/bin/vicinae-leve
+command -v vicinae >/dev/null && /usr/local/bin/vicinae-leve
 # Partes repetidas do que instalamos (fonte, ponteiro) e cache de pacotes (depois de o tema
 # já pedir a fonte "Inter Variable")
 sudo /usr/local/bin/enxugar-sistema
 echo
 echo "Pronto. Apps que estavam abertos (Console, Firefox) pegam as cores ao serem reabertos;"
-echo "extensões novas aparecem depois de sair e entrar na sessão."
+echo "extensões novas (dock, menu do pé do GNOME) aparecem depois de sair e entrar na sessão."
+echo "A Aparência fica no menu do pé do GNOME, no canto de cima à esquerda: Aparência…"
+# Primeira vez (ainda no visual do GNOME): já abre a Aparência para escolher o estilo
+if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && [[ "$(/usr/local/bin/seletor-de-tema --atual)" == gnome-* ]]; then
+  setsid -f /usr/local/bin/seletor-de-tema >/dev/null 2>&1
+fi
